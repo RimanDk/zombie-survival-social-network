@@ -1,0 +1,7 @@
+{
+  "singleQuote": false,
+  "endOfLine": "auto",
+  "overrides": [],
+  "experimentalTernaries": true,
+  "plugins": ["prettier-plugin-tailwindcss"]
+}
