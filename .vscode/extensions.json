@@ -1,0 +1,15 @@
+{
+  "recommendations": [
+    "ms-python.python",
+    "ms-python.pylint",
+    "ms-python.autopep8",
+    "bradlc.vscode-tailwindcss",
+    "ms-playwright.playwright",
+    "esbenp.prettier-vscode",
+    "bracketpaircolordlw.bracket-pair-color-dlw",
+    "dbaeumer.vscode-eslint",
+    "yoavbls.pretty-ts-errors",
+    "GitHub.vscode-pull-request-github",
+    "pomdtr.excalidraw-editor"
+  ]
+}
