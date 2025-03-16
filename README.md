@@ -10,9 +10,20 @@ This project is built with `React`, `TypeScript` and `TailwindCSS` running on a 
 
 To get started:
 
-- using a terminal, navigate to the [frontend](/frontend) directory and run `npm i` to install dependencies
-- once the process is done, run `Vite` server with `npm run dev`
-- For production build preview, run `npm run build` followed by `npm run preview`
+- using a terminal, navigate to the [frontend](/frontend) directory and run
+  ```
+  npm i
+  ```
+  to install dependencies
+- once the process is done, run `Vite` server with
+  ```
+  npm run dev
+  ```
+- For production build preview, run
+  ```
+  npm run build
+  npm run preview
+  ```
 
 ### Backend:
 
@@ -27,6 +38,16 @@ To get started:
   source .venv/bin/activate # on macOS/Linux/WSL2
   .venv\Scripts\activate    # on Windows
   ```
-- install `uv` with `pip install uv`.
-- install dependencies with `uv pip sync`.
-- run API with `uvicorn main:app --reload`.
+  > Note: If you don't have `python` and `pip` aliased, you might need to refer to them as `python3` and `pip3` respectively.
+- install `uv` with
+  ```
+  pip install uv
+  ```
+- install dependencies with
+  ```
+  uv pip sync docs/requirements.txt
+  ```
+- run API with
+  ```
+  uvicorn main:app --reload
+  ```
