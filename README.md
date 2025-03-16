@@ -9,18 +9,20 @@ For description of work, look [here](/challenge-description.md)
 This project is built with `React`, `TypeScript` and `TailwindCSS` running on a `Vite` stack. The project is meant to be run on `Node 22`. If it is not installed, please install it first. `nvm` is recommended for managing your `Node` versions.
 
 To get started:
-****
+
+---
+
 - using a terminal, navigate to the [frontend](/frontend) directory and run
-  ```
+  ```sh
   npm i
   ```
   to install dependencies
 - once the process is done, run `Vite` server with
-  ```
+  ```sh
   npm run dev
   ```
 - For production build preview, run
-  ```
+  ```sh
   npm run build
   npm run preview
   ```
@@ -31,23 +33,29 @@ The backend API is built with `Python`. If it is not available on your system, p
 
 To get started:
 
+- install `uv` package manager globally with
+  ```sh
+  pipx install uv
+  ```
+- verify installation with
+  ```sh
+  which uv
+  ```
+  > If above command returns blank or errors out, you may need to fix your `PATH` with
+  ```sh
+  echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc # or ~/.zshrc for ZSH
+  source ~/.bashrc # or ~/.zshrc for ZSH
+  ```
 - using a terminal, navigate to the [backend](/backend) directory.
 - create and activate Virtual Environment by running
   ```sh
-  python -m venv .venv
-  source .venv/bin/activate # on macOS/Linux/WSL2
-  .venv\Scripts\activate    # on Windows
-  ```
-  > Note: If you don't have `python` and `pip` aliased, you might need to refer to them as `python3` and `pip3` respectively.
-- install `uv` with
-  ```
-  pip install uv
+  uv venv
   ```
 - install dependencies with
-  ```
+  ```sh
   uv sync
   ```
 - run API with
-  ```
+  ```sh
   uvicorn main:app --reload
   ```
