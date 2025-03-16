@@ -9,7 +9,7 @@ For description of work, look [here](/challenge-description.md)
 This project is built with `React`, `TypeScript` and `TailwindCSS` running on a `Vite` stack. The project is meant to be run on `Node 22`. If it is not installed, please install it first. `nvm` is recommended for managing your `Node` versions.
 
 To get started:
-
+****
 - using a terminal, navigate to the [frontend](/frontend) directory and run
   ```
   npm i
@@ -45,7 +45,7 @@ To get started:
   ```
 - install dependencies with
   ```
-  uv pip sync docs/requirements.txt
+  uv sync
   ```
 - run API with
   ```
