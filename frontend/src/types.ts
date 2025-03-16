@@ -7,13 +7,13 @@ export type LatLon = {
 export type Item = {
   id: string;
   label: string;
-  value: number;
+  worth: number;
 };
 
 export type InfectionReport = {
   id: string;
   created: Date;
-  reportee: string;
+  reporter: string;
 };
 
 export type Survivor = {
@@ -22,6 +22,6 @@ export type Survivor = {
   age: number;
   gender: "m" | "f";
   lastLocation: LatLon;
-  inventory: Item[];
+  inventory: string[];
   infectionReports: InfectionReport[];
 };

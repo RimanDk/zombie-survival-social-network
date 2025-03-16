@@ -2,15 +2,15 @@
 import { useEffect, useState } from "react";
 
 // internals
-import { Survivor } from "./types";
-import { HARDCODED_SURVIVORS } from "./constants";
 import { SurvivorCard } from "./components";
+import { MOCK_SURVIVORS } from "./constants";
+import { Survivor } from "./types";
 
 export function App() {
   const [survivors, setSurvivors] = useState<Survivor[]>([]);
 
   useEffect(() => {
-    setSurvivors(HARDCODED_SURVIVORS);
+    setSurvivors(MOCK_SURVIVORS);
   }, []);
 
   return (
