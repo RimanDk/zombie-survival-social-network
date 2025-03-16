@@ -1,6 +1,7 @@
 from typing import List
 from uuid import UUID
 from pydantic import BaseModel
+from datetime import datetime
 
 # I/O Schemas
 
@@ -19,11 +20,18 @@ class LatLong(BaseModel):
     latitude: str
     longitude: str
 
+    class Config:
+        orm_mode = True
+
 
 class InfectionReport(BaseModel):
     id: UUID
-    created: int
-    reporter: str
+    reporter_id: UUID
+    reported_id: UUID
+    created_at: datetime
+
+    class Config:
+        orm_mode = True
 
 
 class Survivor(BaseModel):
@@ -32,8 +40,8 @@ class Survivor(BaseModel):
     age: int
     gender: str
     inventory: List[UUID]
-    # lastLocation: LatLong
-    # InfectionReports: List[InfectionReport]
+    lastLocation: LatLong
+    infectionReports: List[InfectionReport]
 
     class Config:
         orm_mode = True

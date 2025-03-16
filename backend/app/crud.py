@@ -1,6 +1,6 @@
 from uuid import uuid4
 from sqlalchemy.orm import Session
-from app.alchemy_models import Item, Survivor, Inventory
+from app.alchemy_models import Item, Survivor, Inventory, InfectionReport, LatLong
 
 
 def get_possible_items(db: Session):
@@ -28,4 +28,45 @@ def create_survivor(db: Session, name: str, age: int, gender: str, items: dict):
         db.add(inventory)
 
     db.commit()
+    return survivor
+
+
+def report_infection(db: Session, reporter_id: str, reported_id: str):
+    if reporter_id == reported_id:
+        raise ValueError("A survivor cannot report themselves")
+
+    reporter = db.query(Survivor).get(reporter_id)
+    if not reporter:
+        raise ValueError(f"Survivor with id {reporter_id} not found")
+
+    reported = db.query(Survivor).get(reported_id)
+    if not reported:
+        raise ValueError(f"Survivor with id {reported_id} not found")
+
+    report = InfectionReport(
+        id=str(uuid4()), reporter_id=reporter_id, reported_id=reported_id)
+
+    db.add(report)
+    db.commit()
+    db.refresh(report)
+    return report
+
+
+def update_location(db: Session, survivor_id: str, latitude: str, longitude: str):
+    survivor = db.query(Survivor).get(survivor_id)
+    if not survivor:
+        raise ValueError(f"Survivor with id {survivor_id} not found")
+
+    latlong = survivor.lastLocation
+    if not latlong:
+        latlong = LatLong(id=str(uuid4()), latitude=latitude,
+                          longitude=longitude)
+        db.add(latlong)
+        survivor.lastLocation = latlong
+    else:
+        latlong.latitude = latitude
+        latlong.longitude = longitude
+
+    db.commit()
+    db.refresh(survivor)
     return survivor

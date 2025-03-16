@@ -9,8 +9,8 @@ lerna-debug.log*
 
 # Backend
 .venv/
-database.db
 __pycache__/
+*.db
 *.pyc
 *.pyo
 

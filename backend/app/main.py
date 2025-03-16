@@ -3,7 +3,7 @@ from fastapi import FastAPI, Depends
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.pydantic_models import Item, Survivor
+from app.pydantic_models import Item, Survivor, InfectionReport, LatLong
 import app.crud as crud
 
 # Create the API
@@ -31,4 +31,17 @@ def get_survivors(db: Session = Depends(get_db)):
 def create_survivor(survivor: Survivor, db: Session = Depends(get_db)):
     survivor = crud.create_survivor(
         db, survivor.name, survivor.age, survivor.gender, survivor.inventory)
+    return survivor
+
+
+@app.post("/survivors/{reported_id}/report/", response_model=InfectionReport)
+def report_infection(reported_id: str, reporter_id: str, db: Session = Depends(get_db)):
+    report = crud.report_infection(db, reporter_id, reported_id)
+    return report
+
+
+@app.put("/survivors/{survivor_id}/location/", response_model=Survivor)
+def update_location(survivor_id: str, latlong: LatLong, db: Session = Depends(get_db)):
+    survivor = crud.update_location(
+        db, survivor_id, latlong.latitude, latlong.longitude)
     return survivor
