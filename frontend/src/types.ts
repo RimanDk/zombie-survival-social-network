@@ -1,7 +1,9 @@
+export type Gender = "m" | "f";
+
 export type LatLon = {
-  id: string;
-  lat: string;
-  lon: string;
+  id?: string;
+  latitude: string;
+  longitude: string;
 };
 
 export type Item = {
@@ -11,17 +13,19 @@ export type Item = {
 };
 
 export type InfectionReport = {
-  id: string;
+  id?: string;
   created: Date;
   reporter: string;
 };
 
+export type Inventory = Record<string, number>;
+
 export type Survivor = {
-  id: string;
+  id?: string;
   name: string;
   age: number;
-  gender: "m" | "f";
+  gender: Gender;
   lastLocation: LatLon;
-  inventory: string[];
-  infectionReports: InfectionReport[];
+  inventory: Inventory;
+  infectionReports?: InfectionReport[];
 };

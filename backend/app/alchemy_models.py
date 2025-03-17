@@ -1,6 +1,5 @@
 from uuid import uuid4
 from sqlalchemy import Column, Integer, String, ForeignKey, TIMESTAMP, TEXT, text
-from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from app.database import Base, engine
 

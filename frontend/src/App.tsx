@@ -1,32 +1,53 @@
 // libs
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 // internals
-import { SurvivorCard } from "./components";
+import { IdentifySelfModal, SurvivorCard } from "./components";
 import { MOCK_SURVIVORS } from "./constants";
-import { Survivor } from "./types";
+import { Item, Survivor } from "./types";
+import { useSurvivorStore } from "./stores";
 
 export function App() {
-  const [survivors, setSurvivors] = useState<Survivor[]>([]);
+  const { data: itemsMasterList, error: itemsMasterListError } = useQuery<
+    Item[]
+  >({
+    queryKey: ["get-items"],
+    queryFn: () =>
+      fetch("/api/items/")
+        .then((res) => res.json())
+        .catch((err) => console.log(err)),
+  });
 
-  useEffect(() => {
-    setSurvivors(MOCK_SURVIVORS);
-  }, []);
+  const { data: survivors } = useQuery<Survivor[]>({
+    queryKey: ["get-survivors"],
+    queryFn: () =>
+      fetch("/api/survivors/")
+        .then((res) => res.json())
+        .catch((err) => console.log(err)),
+  });
+
+  if (itemsMasterListError) {
+    return null;
+  }
 
   return (
-    <div>
-      <header className="pb-2">
+    <div className="p-6">
+      <header className="flex justify-between">
         <h1 className="font-brand text-3xl">Zombie Survival Social Network</h1>
+        <IdentifySelfModal />
       </header>
       <section>
         <h3 className="font-brand text-xl">Known survivors</h3>
-        <ul className="flex flex-col gap-2">
-          {survivors.map((survivor) => (
-            <li key={survivor.id}>
-              <SurvivorCard survivor={survivor} />
-            </li>
-          ))}
-        </ul>
+        {!!survivors?.length && (
+          <ul className="flex flex-col gap-2">
+            {survivors.map((survivor) => (
+              <li key={survivor.id}>
+                <SurvivorCard survivor={survivor} />
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
     </div>
   );

@@ -1,7 +1,7 @@
-from typing import List
+from typing import Dict, List, Optional
 from uuid import UUID
-from pydantic import BaseModel
 from datetime import datetime
+from pydantic import BaseModel
 
 # I/O Schemas
 
@@ -16,9 +16,10 @@ class Item(BaseModel):
 
 
 class LatLong(BaseModel):
-    id: UUID
+    id: Optional[UUID]
     latitude: str
     longitude: str
+    survivor_id: Optional[UUID]
 
     class Config:
         orm_mode = True
@@ -33,20 +34,6 @@ class InfectionReport(BaseModel):
     class Config:
         orm_mode = True
 
-
-class Survivor(BaseModel):
-    id: UUID
-    name: str
-    age: int
-    gender: str
-    inventory: List[UUID]
-    lastLocation: LatLong
-    infectionReports: List[InfectionReport]
-
-    class Config:
-        orm_mode = True
-
-
 class Inventory(BaseModel):
     survivor_id: UUID
     item_id: UUID
@@ -54,3 +41,28 @@ class Inventory(BaseModel):
 
     class Config:
         orm_mode = True
+
+class Survivor(BaseModel):
+    id: Optional[UUID] = None
+    name: str
+    age: int
+    gender: str
+    inventory: Dict[UUID, int]
+    lastLocation: LatLong
+    infectionReports: List[InfectionReport] = []
+
+    class Config:
+        orm_mode = True
+
+class LatLongCreate(BaseModel):
+    latitude: str
+    longitude: str
+
+class SurvivorCreate(BaseModel):
+    id: Optional[UUID] = None
+    name: str
+    age: int
+    gender: str
+    inventory: Dict[UUID, int]
+    lastLocation: LatLongCreate
+    infectionReports: List[InfectionReport] = []
