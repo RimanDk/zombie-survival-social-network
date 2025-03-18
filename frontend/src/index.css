@@ -3,6 +3,10 @@
 @import "tailwindcss";
 @config "../tailwind.config.mjs";
 
+@theme {
+  --breakpoint-xs: 30rem;
+}
+
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;

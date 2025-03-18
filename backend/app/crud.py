@@ -64,7 +64,7 @@ def get_possible_items(db: Session):
     return db.query(Item).all()
 
 
-def get_survivors(db: Session, user_id: Optional[str] = None):
+def get_survivors(db: Session, user_id: Optional[str] = None, max_distance: Optional[int] = None):
     """Handles survivor retrieval based on filters and sorts them by distance if a user ID is provided."""
     survivors = [s for s in db.query(Survivor).all() if len(s.infectionReports) < 3]
 
@@ -80,6 +80,9 @@ def get_survivors(db: Session, user_id: Optional[str] = None):
 
     # Sort by distance (None distances go last)
     survivor_list.sort(key=lambda s: (s["lastLocation"]["distance"] is None, s["lastLocation"]["distance"] or 0))
+
+    if max_distance:
+        survivor_list = [s for s in survivor_list if s["lastLocation"]["distance"] and s["lastLocation"]["distance"] <= max_distance]
 
     return survivor_list
 

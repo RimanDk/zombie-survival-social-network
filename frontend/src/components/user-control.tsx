@@ -36,7 +36,12 @@ export function UserCenter() {
         .then((res) => res.json())
         .then((data) => {
           if (isSurvivor(data) && data.id === myId) {
-            identify(data.id, data.name);
+            identify(
+              data.id,
+              data.name,
+              data.lastLocation.latitude,
+              data.lastLocation.longitude,
+            );
           }
           return data;
         })
@@ -67,7 +72,7 @@ export function UserCenter() {
             <Button
               variant="soft"
               color="gray"
-              onClick={() => identify(null, null)}
+              onClick={() => identify(null, null, null, null)}
             >
               Sign out
             </Button>
@@ -172,7 +177,12 @@ function SignIn() {
                 data.name.toLocaleLowerCase() === name.toLocaleLowerCase() &&
                 data.id
               ) {
-                identify(data.id, data.name);
+                identify(
+                  data.id,
+                  data.name,
+                  data.lastLocation.latitude,
+                  data.lastLocation.longitude,
+                );
               }
               setName("");
             }}
@@ -347,7 +357,12 @@ function Register() {
                   {
                     onSuccess: (data) => {
                       if (isSurvivor(data) && data.name === name && data.id) {
-                        identify(data.id, data.name);
+                        identify(
+                          data.id,
+                          data.name,
+                          data.lastLocation.latitude,
+                          data.lastLocation.longitude,
+                        );
                       }
                     },
                     onSettled: resetValues,
@@ -363,8 +378,3 @@ function Register() {
     </section>
   );
 }
-// 55.96061252635802, 12.503111911870166;
-// 55.965656903255116, 12.515299869532376;
-// 55.971661256583445, 12.53066356264178;
-// 55.9654167097408, 12.503970218747785;
-// 55.957008997434244, 12.435134007162626;

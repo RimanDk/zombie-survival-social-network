@@ -32,8 +32,9 @@ def get_items(db: Session = Depends(get_db)):
 @app.get("/survivors/", response_model=List[Survivor])
 def get_survivors(
     user_id: Optional[str] = Header(None, alias="X-User-Id"),
+    max_distance: Optional[int] = None,
     db: Session = Depends(get_db)):
-    survivors = crud.get_survivors(db, user_id)
+    survivors = crud.get_survivors(db, user_id, max_distance)
     return survivors
 
 
