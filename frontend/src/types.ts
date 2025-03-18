@@ -4,6 +4,7 @@ export type LatLon = {
   id?: string;
   latitude: number;
   longitude: number;
+  distance?: number;
 };
 
 export type Item = {

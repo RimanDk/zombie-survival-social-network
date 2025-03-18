@@ -1,5 +1,5 @@
 from uuid import uuid4
-from math import sqrt
+from math import cos, radians, sqrt
 from typing import List, Dict, Optional
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
@@ -22,7 +22,16 @@ def calculate_distance(survivor: Survivor, reference: Survivor) -> Optional[floa
 
     x1, y1 = reference.lastLocation.latitude, reference.lastLocation.longitude
     x2, y2 = survivor.lastLocation.latitude, survivor.lastLocation.longitude
-    return round(sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2), 6)  # Rounded for readability
+
+    # Scaling factors
+    lat_m = 111_000  # Meters per degree latitude
+    lon_m = 111_320 * cos(radians(x1))  # Meters per degree longitude at this latitude
+
+    # Convert degrees to meters
+    lat_diff_m = (x2 - x1) * lat_m
+    lon_diff_m = (y2 - y1) * lon_m
+
+    return round(sqrt(lat_diff_m ** 2 + lon_diff_m ** 2), 2)  # Rounded for readability
 
 def format_survivor_response(survivor: Survivor, reference: Optional[Survivor] = None) -> Dict:
     """Formats a survivor into a dictionary for API response, adding distance if needed."""
@@ -38,7 +47,14 @@ def format_survivor_response(survivor: Survivor, reference: Optional[Survivor] =
             "survivor_id": survivor.lastLocation.survivor_id,
             "distance": calculate_distance(survivor, reference)
         } if survivor.lastLocation else None,
-        "infectionReports": [report.reporter_id for report in survivor.infectionReports],
+        "infectionReports": [
+            {
+                "id": report.id,
+                "reporter_id": report.reporter_id,
+                "reported_id": report.reported_id,
+                "created_at": report.created_at
+            } for report in survivor.infectionReports
+        ],
         "inventory": {str(item.item_id): item.quantity for item in survivor.inventory}
     }
 
@@ -49,14 +65,23 @@ def get_possible_items(db: Session):
 
 
 def get_survivors(db: Session, user_id: Optional[str] = None):
-    """Handles survivor retrieval based on filters and formats the response."""
-    survivors = db.query(Survivor).all()
+    """Handles survivor retrieval based on filters and sorts them by distance if a user ID is provided."""
+    survivors = [s for s in db.query(Survivor).all() if len(s.infectionReports) < 3]
 
-    requesting_survivor = None
-    if user_id:
-        requesting_survivor, survivors = exclude_requesting_user(survivors, user_id)
+    if not user_id:
+        # Early exit
+        return [format_survivor_response(s) for s in survivors]
 
-    return [format_survivor_response(s, requesting_survivor) for s in survivors]
+    # Exclude the requesting user
+    requesting_survivor, survivors = exclude_requesting_user(survivors, user_id)
+
+    # Format and calculate distances
+    survivor_list = [format_survivor_response(s, requesting_survivor) for s in survivors]
+
+    # Sort by distance (None distances go last)
+    survivor_list.sort(key=lambda s: (s["lastLocation"]["distance"] is None, s["lastLocation"]["distance"] or 0))
+
+    return survivor_list
 
 
 def get_survivor_by_name_or_id(db: Session, name_or_id: str):
@@ -70,7 +95,14 @@ def get_survivor_by_name_or_id(db: Session, name_or_id: str):
         )
         .first()
     )
-    return format_survivor_response(survivor) if survivor else None
+
+    if not survivor:
+        return None  # Not found in the system
+
+    if len(survivor.infectionReports) >= 3:
+        raise ValueError("Survivor is infected!")
+
+    return format_survivor_response(survivor)
 
 
 def create_survivor(db: Session, name: str, age: int, gender: str, location: LatLongCreate, items: dict):

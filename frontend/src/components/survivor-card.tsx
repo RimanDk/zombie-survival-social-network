@@ -5,10 +5,12 @@ interface SurvivorCardProps {
 }
 export function SurvivorCard({ survivor }: SurvivorCardProps) {
   return (
-    <section className="grid grid-cols-3 items-center">
+    <section className="grid grid-cols-5 items-center">
       <p>{survivor.name}</p>
       <p>{survivor.age}</p>
-      <InfectionReportGauge reports={survivor.infectionReports} />
+      <p>{survivor.gender}</p>
+      <p>{survivor.lastLocation.distance}</p>
+      <InfectionReportGauge reports={survivor.infectionReports ?? []} />
     </section>
   );
 }

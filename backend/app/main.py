@@ -39,10 +39,13 @@ def get_survivors(
 
 @app.get("/survivors/{name_or_id}", response_model=Optional[Survivor])
 def get_survivor_by_name_or_id(name_or_id: str, db: Session = Depends(get_db)):
-    survivor = crud.get_survivor_by_name_or_id(db, name_or_id)
-    if not survivor:
-        raise HTTPException(status_code=404, detail="Survivor not found")
-    return survivor
+    try:
+        survivor = crud.get_survivor_by_name_or_id(db, name_or_id)
+        if not survivor:
+            raise HTTPException(status_code=404, detail="Survivor not found in the system")
+        return survivor
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
 
 
 @app.post("/survivors/", response_model=Survivor)
