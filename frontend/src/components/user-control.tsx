@@ -2,7 +2,9 @@ import {
   Button,
   Callout,
   Dialog,
+  Popover,
   Radio,
+  Spinner,
   Tabs,
   Text,
   TextField,
@@ -10,14 +12,16 @@ import {
 } from "@radix-ui/themes";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { ChangeEvent, useState } from "react";
+import { FaRegUser } from "react-icons/fa";
 import { MdError } from "react-icons/md";
 import { useShallow } from "zustand/react/shallow";
 // internals
 import { useSurvivorStore } from "../stores";
-import { Gender, Inventory, LatLon, Survivor } from "../types";
+import { ErrorState, Gender, Inventory, LatLon, Survivor } from "../types";
+import { isErrorState, isSurvivor } from "../helpers";
 
-export function IdentifySelfModal() {
-  const { myId, myName } = useSurvivorStore(
+export function UserCenter() {
+  const { myId, myName, identify } = useSurvivorStore(
     useShallow((state) => ({
       myId: state.id,
       myName: state.name,
@@ -25,12 +29,51 @@ export function IdentifySelfModal() {
     })),
   );
 
+  const { isFetching } = useQuery<Survivor | ErrorState>({
+    queryKey: ["get-survivor", myId],
+    queryFn: () =>
+      fetch(`/api/survivors/${myId}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (isSurvivor(data) && data.id === myId) {
+            identify(data.id, data.name);
+          }
+          return data;
+        })
+        .catch((err) => console.log(err)),
+    enabled: !!myId && !myName,
+  });
+
+  if (myId && !myName && isFetching) {
+    return (
+      <Text color="lime">
+        <Spinner />
+      </Text>
+    );
+  }
+
   if (myId && myName) {
     return (
-      <div className="flex gap-2">
-        <span>Hello,</span>
-        <Text color="lime">{myName}</Text>
-      </div>
+      <Popover.Root>
+        <Popover.Trigger>
+          <Button variant="soft">
+            <FaRegUser />
+            <span>{myName}</span>
+          </Button>
+        </Popover.Trigger>
+
+        <Popover.Content width="20rem">
+          <Popover.Close>
+            <Button
+              variant="soft"
+              color="gray"
+              onClick={() => identify(null, null)}
+            >
+              Sign out
+            </Button>
+          </Popover.Close>
+        </Popover.Content>
+      </Popover.Root>
     );
   }
 
@@ -71,17 +114,12 @@ function SignIn() {
 
   const [name, setName] = useState("");
 
-  const { refetch, data, isFetching } = useQuery({
+  const { refetch, data, isFetching } = useQuery<Survivor | ErrorState>({
     queryKey: ["get-survivor", name],
     queryFn: () =>
       fetch(`/api/survivors/${name}`)
         .then((res) => res.json())
-        .then((data) => {
-          if (data.name === name && data.id) {
-            identify(data.id, data.name);
-          }
-          return data;
-        }),
+        .catch((err) => console.log(err)),
     enabled: false,
   });
 
@@ -102,7 +140,7 @@ function SignIn() {
         />
       </label>
 
-      {data?.detail === "Not Found" && (
+      {isErrorState(data) && data.detail === "Not Found" && (
         <Callout.Root variant="soft">
           <Callout.Icon>
             <MdError />
@@ -128,7 +166,14 @@ function SignIn() {
         <Dialog.Close>
           <Button
             onClick={async () => {
-              await refetch();
+              const { data } = await refetch();
+              if (
+                isSurvivor(data) &&
+                data.name.toLocaleLowerCase() === name.toLocaleLowerCase() &&
+                data.id
+              ) {
+                identify(data.id, data.name);
+              }
               setName("");
             }}
             disabled={name === ""}
@@ -143,19 +188,21 @@ function SignIn() {
 }
 
 function Register() {
+  const identify = useSurvivorStore((state) => state.actions.identify);
+
   const [name, setName] = useState("");
   const [age, setAge] = useState<number>();
   const [gender, setGender] = useState<Gender>();
-  const [latitude, setLatitude] = useState<LatLon["latitude"]>("");
-  const [longitude, setLongitude] = useState<LatLon["longitude"]>("");
+  const [latitude, setLatitude] = useState<LatLon["latitude"]>();
+  const [longitude, setLongitude] = useState<LatLon["longitude"]>();
   const [inventory, setInventory] = useState<Inventory>({});
 
   const resetValues = () => {
     setName("");
     setAge(undefined);
     setGender(undefined);
-    setLatitude("");
-    setLongitude("");
+    setLatitude(undefined);
+    setLongitude(undefined);
     setInventory({});
   };
 
@@ -167,7 +214,7 @@ function Register() {
         .catch((err) => console.log(err)),
   });
 
-  const register = useMutation({
+  const mutation = useMutation({
     mutationFn: (data: Survivor) =>
       fetch("/api/survivors/", {
         method: "POST",
@@ -175,7 +222,9 @@ function Register() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(data),
-      }),
+      })
+        .then((res) => res.json())
+        .catch((err) => console.log(err)),
   });
 
   return (
@@ -236,15 +285,17 @@ function Register() {
         <div className="flex gap-2">
           <TextField.Root
             value={latitude}
+            type="number"
             onChange={(e: ChangeEvent<HTMLInputElement>) =>
-              setLatitude(e.target.value)
+              setLatitude(parseFloat(e.target.value))
             }
             placeholder="Latitude"
           />
           <TextField.Root
             value={longitude}
+            type="number"
             onChange={(e: ChangeEvent<HTMLInputElement>) =>
-              setLongitude(e.target.value)
+              setLongitude(parseFloat(e.target.value))
             }
             placeholder="Longitude"
           />
@@ -280,24 +331,28 @@ function Register() {
           </Dialog.Close>
           <Dialog.Close>
             <Button
+              disabled={!name || !age || !gender || !latitude || !longitude}
               onClick={async () => {
-                console.info(
-                  "registering",
-                  name,
-                  age,
-                  gender,
-                  latitude,
-                  longitude,
-                  inventory,
+                await mutation.mutate(
+                  {
+                    name,
+                    age: age!,
+                    gender: gender!,
+                    lastLocation: {
+                      latitude: latitude!,
+                      longitude: longitude!,
+                    },
+                    inventory,
+                  },
+                  {
+                    onSuccess: (data) => {
+                      if (isSurvivor(data) && data.name === name && data.id) {
+                        identify(data.id, data.name);
+                      }
+                    },
+                    onSettled: resetValues,
+                  },
                 );
-                await register.mutate({
-                  name,
-                  age: age!,
-                  gender: gender!,
-                  lastLocation: { latitude, longitude },
-                  inventory,
-                });
-                resetValues();
               }}
             >
               Register
@@ -308,3 +363,8 @@ function Register() {
     </section>
   );
 }
+// 55.96061252635802, 12.503111911870166;
+// 55.965656903255116, 12.515299869532376;
+// 55.971661256583445, 12.53066356264178;
+// 55.9654167097408, 12.503970218747785;
+// 55.957008997434244, 12.435134007162626;

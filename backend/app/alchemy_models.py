@@ -1,5 +1,5 @@
 from uuid import uuid4
-from sqlalchemy import Column, Integer, String, ForeignKey, TIMESTAMP, TEXT, text
+from sqlalchemy import Column, Float, Integer, String, ForeignKey, TIMESTAMP, TEXT, text
 from sqlalchemy.orm import relationship
 from app.database import Base, engine
 
@@ -34,8 +34,8 @@ class Survivor(Base):
 class LatLong(Base):
     __tablename__ = "latlong"
     id = Column(TEXT, primary_key=True, default=lambda: str(uuid4()))
-    latitude = Column(String)
-    longitude = Column(String)
+    latitude = Column(Float, nullable=False)
+    longitude = Column(Float, nullable=False)
     survivor_id = Column(TEXT, ForeignKey("survivors.id"))
     survivor = relationship("Survivor", back_populates="lastLocation")
 

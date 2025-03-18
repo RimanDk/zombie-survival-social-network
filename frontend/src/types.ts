@@ -2,8 +2,8 @@ export type Gender = "m" | "f";
 
 export type LatLon = {
   id?: string;
-  latitude: string;
-  longitude: string;
+  latitude: number;
+  longitude: number;
 };
 
 export type Item = {
@@ -29,3 +29,5 @@ export type Survivor = {
   inventory: Inventory;
   infectionReports?: InfectionReport[];
 };
+
+export type ErrorState = { detail: string };

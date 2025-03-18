@@ -5,7 +5,7 @@ interface SurvivorStoreState {
   id: string | null;
   name: string | null;
   actions: {
-    identify: (id: string, name: string) => void;
+    identify: (id: string | null, name: string | null) => void;
   };
 }
 export const useSurvivorStore = create<SurvivorStoreState>()(

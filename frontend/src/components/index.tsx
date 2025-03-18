@@ -1,2 +1,2 @@
 export * from "./survivor-card";
-export * from "./identify-self-modal";
+export * from "./user-control";

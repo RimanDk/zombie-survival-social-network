@@ -1,5 +1,5 @@
-from typing import List
-from fastapi import FastAPI, Depends
+from typing import List, Optional
+from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from app.database import get_db
@@ -30,10 +30,19 @@ def get_items(db: Session = Depends(get_db)):
 
 
 @app.get("/survivors/", response_model=List[Survivor])
-def get_survivors(name: str = None, db: Session = Depends(get_db)):
-    survivors = crud.get_survivors(db, name)
+def get_survivors(
+    user_id: Optional[str] = Header(None, alias="X-User-Id"),
+    db: Session = Depends(get_db)):
+    survivors = crud.get_survivors(db, user_id)
     return survivors
 
+
+@app.get("/survivors/{name_or_id}", response_model=Optional[Survivor])
+def get_survivor_by_name_or_id(name_or_id: str, db: Session = Depends(get_db)):
+    survivor = crud.get_survivor_by_name_or_id(db, name_or_id)
+    if not survivor:
+        raise HTTPException(status_code=404, detail="Survivor not found")
+    return survivor
 
 
 @app.post("/survivors/", response_model=Survivor)
@@ -53,4 +62,9 @@ def report_infection(reported_id: str, reporter_id: str, db: Session = Depends(g
 def update_location(survivor_id: str, latlong: LatLong, db: Session = Depends(get_db)):
     survivor = crud.update_location(
         db, survivor_id, latlong.latitude, latlong.longitude)
+    return survivor
+
+@app.delete("/survivors/{survivor_id}/", response_model=Survivor)
+def delete_survivor(survivor_id: str, db: Session = Depends(get_db)):
+    survivor = crud.delete_survivor(db, survivor_id)
     return survivor

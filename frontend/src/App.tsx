@@ -1,17 +1,15 @@
 // libs
-import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 // internals
-import { IdentifySelfModal, SurvivorCard } from "./components";
-import { MOCK_SURVIVORS } from "./constants";
+import { UserCenter, SurvivorCard } from "./components";
 import { Item, Survivor } from "./types";
 import { useSurvivorStore } from "./stores";
 
 export function App() {
-  const { data: itemsMasterList, error: itemsMasterListError } = useQuery<
-    Item[]
-  >({
+  const myId = useSurvivorStore((state) => state.id);
+
+  const { error: itemsMasterListError } = useQuery<Item[]>({
     queryKey: ["get-items"],
     queryFn: () =>
       fetch("/api/items/")
@@ -20,11 +18,19 @@ export function App() {
   });
 
   const { data: survivors } = useQuery<Survivor[]>({
-    queryKey: ["get-survivors"],
-    queryFn: () =>
-      fetch("/api/survivors/")
+    queryKey: ["get-survivors", myId],
+    queryFn: () => {
+      const headers = new Headers();
+      if (myId) {
+        headers.append("X-User-Id", myId);
+      }
+      return fetch("/api/survivors/", {
+        method: "GET",
+        headers,
+      })
         .then((res) => res.json())
-        .catch((err) => console.log(err)),
+        .catch((err) => console.log(err));
+    },
   });
 
   if (itemsMasterListError) {
@@ -35,7 +41,7 @@ export function App() {
     <div className="p-6">
       <header className="flex justify-between">
         <h1 className="font-brand text-3xl">Zombie Survival Social Network</h1>
-        <IdentifySelfModal />
+        <UserCenter />
       </header>
       <section>
         <h3 className="font-brand text-xl">Known survivors</h3>

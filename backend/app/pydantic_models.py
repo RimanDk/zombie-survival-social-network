@@ -12,17 +12,18 @@ class Item(BaseModel):
     worth: int
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class LatLong(BaseModel):
     id: Optional[UUID]
-    latitude: str
-    longitude: str
+    latitude: float
+    longitude: float
+    distance: Optional[float] = None
     survivor_id: Optional[UUID]
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class InfectionReport(BaseModel):
@@ -32,7 +33,7 @@ class InfectionReport(BaseModel):
     created_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class Inventory(BaseModel):
     survivor_id: UUID
@@ -40,7 +41,7 @@ class Inventory(BaseModel):
     quantity: int
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class Survivor(BaseModel):
     id: Optional[UUID] = None
@@ -52,11 +53,11 @@ class Survivor(BaseModel):
     infectionReports: List[InfectionReport] = []
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class LatLongCreate(BaseModel):
-    latitude: str
-    longitude: str
+    latitude: float
+    longitude: float
 
 class SurvivorCreate(BaseModel):
     id: Optional[UUID] = None
