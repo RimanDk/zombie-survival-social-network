@@ -1,6 +1,5 @@
 import {
   Button,
-  Callout,
   Dialog,
   Popover,
   Radio,
@@ -19,6 +18,7 @@ import { useShallow } from "zustand/react/shallow";
 import { useSurvivorStore } from "../stores";
 import { ErrorState, Gender, Inventory, LatLon, Survivor } from "../types";
 import { isErrorState, isSurvivor } from "../helpers";
+import { Toast } from ".";
 
 export function UserCenter() {
   const { myId, myName, identify } = useSurvivorStore(
@@ -48,6 +48,8 @@ export function UserCenter() {
         .catch((err) => console.log(err)),
     enabled: !!myId && !myName,
   });
+
+  const [errorToastOpen, setErrorToastOpen] = useState(false);
 
   if (myId && !myName && isFetching) {
     return (
@@ -83,43 +85,59 @@ export function UserCenter() {
   }
 
   return (
-    <Dialog.Root>
-      <Dialog.Trigger>
-        <Button variant="classic">Sign in</Button>
-      </Dialog.Trigger>
+    <>
+      <Dialog.Root>
+        <Dialog.Trigger>
+          <Button variant="classic">Sign in</Button>
+        </Dialog.Trigger>
 
-      <Dialog.Content maxWidth="20rem" className="!p-0">
-        <VisuallyHidden>
-          <Dialog.Title>Sign in or register</Dialog.Title>
-        </VisuallyHidden>
+        <Dialog.Content maxWidth="20rem" className="!p-0">
+          <VisuallyHidden>
+            <Dialog.Title>Sign in or register</Dialog.Title>
+          </VisuallyHidden>
 
-        <Tabs.Root defaultValue="sign-in">
-          <Tabs.List>
-            <Tabs.Trigger value="sign-in">Sign in</Tabs.Trigger>
-            <Tabs.Trigger value="register">Register</Tabs.Trigger>
-          </Tabs.List>
+          <Tabs.Root defaultValue="sign-in">
+            <Tabs.List>
+              <Tabs.Trigger value="sign-in">Sign in</Tabs.Trigger>
+              <Tabs.Trigger value="register">Register</Tabs.Trigger>
+            </Tabs.List>
 
-          <div className="p-6">
-            <Tabs.Content value="sign-in">
-              <SignIn />
-            </Tabs.Content>
+            <div className="p-6">
+              <Tabs.Content value="sign-in">
+                <SignIn openErrorToast={() => setErrorToastOpen(true)} />
+              </Tabs.Content>
 
-            <Tabs.Content value="register">
-              <Register />
-            </Tabs.Content>
-          </div>
-        </Tabs.Root>
-      </Dialog.Content>
-    </Dialog.Root>
+              <Tabs.Content value="register">
+                <Register />
+              </Tabs.Content>
+            </div>
+          </Tabs.Root>
+        </Dialog.Content>
+      </Dialog.Root>
+
+      <Toast
+        open={errorToastOpen}
+        onOpenChange={(o) => {
+          setErrorToastOpen(o);
+        }}
+        type="error"
+        title="Error"
+        titleIcon={<MdError />}
+        description="Couldn't find you - are you sure you're in the system?"
+      />
+    </>
   );
 }
 
-function SignIn() {
+interface SignInProps {
+  openErrorToast: () => void;
+}
+function SignIn({ openErrorToast }: SignInProps) {
   const identify = useSurvivorStore((state) => state.actions.identify);
 
   const [name, setName] = useState("");
 
-  const { refetch, data, isFetching } = useQuery<Survivor | ErrorState>({
+  const { refetch, isFetching } = useQuery<Survivor | ErrorState>({
     queryKey: ["get-survivor", name],
     queryFn: () =>
       fetch(`/api/survivors/${name}`)
@@ -144,17 +162,6 @@ function SignIn() {
           placeholder="John Doe"
         />
       </label>
-
-      {isErrorState(data) && data.detail === "Not Found" && (
-        <Callout.Root variant="soft">
-          <Callout.Icon>
-            <MdError />
-          </Callout.Icon>
-          <Callout.Text>
-            Couldn't find you - are you sure you're in the system?
-          </Callout.Text>
-        </Callout.Root>
-      )}
 
       <footer className="flex justify-between">
         <Dialog.Close>
@@ -184,6 +191,11 @@ function SignIn() {
                   data.lastLocation.longitude,
                 );
               }
+
+              if (isErrorState(data)) {
+                openErrorToast();
+              }
+
               setName("");
             }}
             disabled={name === ""}
