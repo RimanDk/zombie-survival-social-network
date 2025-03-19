@@ -2,6 +2,7 @@
 import { Button, Dialog, TextField } from "@radix-ui/themes";
 import { useQuery } from "@tanstack/react-query";
 import { ChangeEvent, useState } from "react";
+import { useShallow } from "zustand/react/shallow";
 
 // internals
 import { isErrorState, isSurvivor } from "../helpers";
@@ -12,7 +13,12 @@ interface SignInProps {
   openErrorToast: () => void;
 }
 export function SignIn({ openErrorToast }: SignInProps) {
-  const identify = useSurvivorStore((state) => state.actions.identify);
+  const { identify, updateInventory } = useSurvivorStore(
+    useShallow((state) => ({
+      identify: state.actions.identify,
+      updateInventory: state.actions.updateInventory,
+    })),
+  );
 
   const [name, setName] = useState("");
 
@@ -69,6 +75,7 @@ export function SignIn({ openErrorToast }: SignInProps) {
                   data.lastLocation.latitude,
                   data.lastLocation.longitude,
                 );
+                updateInventory(data.inventory);
               }
 
               if (isErrorState(data)) {

@@ -13,15 +13,19 @@ export function App() {
 
   const { error: itemsMasterListError } = useQuery<Item[]>({
     queryKey: ["get-items"],
-    queryFn: () =>
-      fetch("/api/items/")
-        .then((res) => res.json())
-        .catch((err) => console.log(err)),
+    queryFn: async () => {
+      const response = await fetch("/api/items/");
+
+      if (!response.ok) {
+        throw new Error("An error occurred");
+      }
+      return await response.json();
+    },
   });
 
   const { data: survivors } = useQuery<Survivor[]>({
     queryKey: ["get-survivors", myId, maxDistance],
-    queryFn: () => {
+    queryFn: async () => {
       const headers = new Headers();
       if (myId) {
         headers.append("X-User-Id", myId);
@@ -32,12 +36,16 @@ export function App() {
         search.append("max_distance", `${maxDistance}`);
       }
 
-      return fetch(`/api/survivors/?${search.toString()}`, {
+      const response = await fetch(`/api/survivors/?${search.toString()}`, {
         method: "GET",
         headers,
-      })
-        .then((res) => res.json())
-        .catch((err) => console.log(err));
+      });
+
+      if (!response.ok) {
+        throw new Error("An error occurred");
+      }
+
+      return await response.json();
     },
   });
 

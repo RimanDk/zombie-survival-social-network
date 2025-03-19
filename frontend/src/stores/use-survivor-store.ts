@@ -1,11 +1,13 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
+import { Inventory } from "../types";
 
 interface SurvivorStoreState {
   id: string | null;
   name: string | null;
   latitude: number | null;
   longitude: number | null;
+  inventory: Inventory;
   actions: {
     identify: (
       id: string | null,
@@ -13,6 +15,7 @@ interface SurvivorStoreState {
       latitude: number | null,
       longitude: number | null,
     ) => void;
+    updateInventory: (inventory: Inventory) => void;
   };
 }
 export const useSurvivorStore = create<SurvivorStoreState>()(
@@ -22,9 +25,14 @@ export const useSurvivorStore = create<SurvivorStoreState>()(
       name: null,
       latitude: null,
       longitude: null,
+      inventory: {},
       actions: {
-        identify: (id, name, latitude, longitude) =>
-          set({ id, name, latitude, longitude }),
+        identify: (id, name, latitude, longitude) => {
+          set({ id, name, latitude, longitude });
+        },
+        updateInventory: (inventory) => {
+          set({ inventory });
+        },
       },
     }),
     {

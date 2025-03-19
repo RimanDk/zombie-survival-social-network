@@ -7,7 +7,7 @@ import {
   VisuallyHidden,
 } from "@radix-ui/themes";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { MdError } from "react-icons/md";
 import { useShallow } from "zustand/react/shallow";
 
@@ -18,31 +18,42 @@ import { isSurvivor } from "../helpers";
 import { Register, SignIn, Toast, UserPanel } from ".";
 
 export function UserCenter() {
-  const { myId, myName, identify } = useSurvivorStore(
+  const { myId, myName, identify, updateInventory } = useSurvivorStore(
     useShallow((state) => ({
       myId: state.id,
       myName: state.name,
       identify: state.actions.identify,
+      updateInventory: state.actions.updateInventory,
     })),
   );
 
+  const queryFn = useCallback(async () => {
+    const response = await fetch(`/api/survivors/${myId}`);
+
+    if (!response.ok) {
+      throw new Error("An error occurred");
+    }
+    try {
+      const data = await response.json();
+      if (isSurvivor(data) && data.id === myId) {
+        identify(
+          data.id,
+          data.name,
+          data.lastLocation.latitude,
+          data.lastLocation.longitude,
+        );
+        updateInventory(data.inventory);
+      }
+      return data;
+    } catch (err) {
+      console.error(err);
+      throw new Error("An error occurred parsing response");
+    }
+  }, [myId, identify, updateInventory]);
+
   const { isFetching } = useQuery<Survivor | ErrorState>({
     queryKey: ["get-survivor", myId],
-    queryFn: () =>
-      fetch(`/api/survivors/${myId}`)
-        .then((res) => res.json())
-        .then((data) => {
-          if (isSurvivor(data) && data.id === myId) {
-            identify(
-              data.id,
-              data.name,
-              data.lastLocation.latitude,
-              data.lastLocation.longitude,
-            );
-          }
-          return data;
-        })
-        .catch((err) => console.log(err)),
+    queryFn,
     enabled: !!myId && !myName,
   });
 

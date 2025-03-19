@@ -1,45 +1,46 @@
 // libs
-import { Button, Dialog, Radio, TextField } from "@radix-ui/themes";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import {
+  Button,
+  Dialog,
+  SegmentedControl,
+  Separator,
+  TextField,
+} from "@radix-ui/themes";
+import { useMutation } from "@tanstack/react-query";
 import { ChangeEvent, useCallback, useMemo, useState } from "react";
 
 // internals
 import { isSurvivor } from "../helpers";
 import { useSurvivorStore } from "../stores";
-import { Gender, Inventory, LatLon, Survivor } from "../types";
-import { ToastEngine, ToastsConfig } from ".";
+import { Gender, Inventory as TInventory, LatLon, Survivor } from "../types";
+import {
+  GenderIndicator,
+  Inventory,
+  LocationEditor,
+  ToastEngine,
+  ToastsConfig,
+} from ".";
+
+const DEFAULT_AGE = 18;
 
 export function Register() {
   const identify = useSurvivorStore((state) => state.actions.identify);
 
   const [name, setName] = useState("");
-  const [age, setAge] = useState<number>();
+  const [age, setAge] = useState<number>(DEFAULT_AGE);
   const [gender, setGender] = useState<Gender>();
   const [latitude, setLatitude] = useState<LatLon["latitude"]>();
   const [longitude, setLongitude] = useState<LatLon["longitude"]>();
-  const [inventory, setInventory] = useState<Inventory>({});
+  const [inventory, setInventory] = useState<TInventory>({});
 
   const resetValues = () => {
     setName("");
-    setAge(undefined);
+    setAge(DEFAULT_AGE);
     setGender(undefined);
     setLatitude(undefined);
     setLongitude(undefined);
     setInventory({});
   };
-
-  const queryFn = useCallback(async () => {
-    const response = await fetch("/api/items/");
-    if (!response.ok) {
-      throw new Error("An error occurred");
-    }
-    return response.json();
-  }, []);
-
-  const { data: itemsMasterList } = useQuery({
-    queryKey: ["get-items"],
-    queryFn,
-  });
 
   const mutationFn = useCallback(async (data: Survivor) => {
     const headers = new Headers();
@@ -95,128 +96,97 @@ export function Register() {
   const [openToasts, setOpenToasts] = useState<(keyof typeof toasts)[]>([]);
 
   return (
-    <section className="flex flex-col gap-3">
+    <section className="flex flex-col gap-3 text-balance">
       <Dialog.Description size="2">
-        Welcome! Let's get you registered
+        Welcome! Let's get you registered! Tell us about yourself
       </Dialog.Description>
 
-      <label>
-        <span>What's your name?</span>
-        <TextField.Root
-          value={name}
-          onChange={(e: ChangeEvent<HTMLInputElement>) =>
-            setName(e.target.value)
-          }
-          placeholder="John Doe"
-        />
-      </label>
+      <fieldset>
+        <legend className="text-lime-500">Personal Information</legend>
 
-      <label>
-        <span>How old are you?</span>
-        <TextField.Root
-          value={age}
-          type="number"
-          onChange={(e: ChangeEvent<HTMLInputElement>) =>
-            setAge(parseInt(e.target.value))
-          }
-          placeholder="30"
-        />
-      </label>
+        <div className="grid grid-cols-[70%_auto] gap-2 pb-2">
+          <label>
+            <span className="text-sm">Name</span>
+            <TextField.Root
+              value={name}
+              onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                setName(e.target.value)
+              }
+              placeholder="John Doe"
+            />
+          </label>
 
-      <span>What's your gender?</span>
-      <label className="flex items-center gap-2">
-        <Radio
-          name="gender"
-          value="m"
-          onChange={() => {
-            setGender("m");
-          }}
-          checked={gender === "m"}
-        />
-        <span>Male</span>
-      </label>
-      <label className="flex items-center gap-2">
-        <Radio
-          name="gender"
-          value="f"
-          onChange={() => {
-            setGender("f");
-          }}
-          checked={gender === "f"}
-        />
-        <span>Female</span>
-      </label>
-
-      <div>
-        <span>Where are you located?</span>
-        <div className="flex gap-2">
-          <TextField.Root
-            value={latitude}
-            type="number"
-            onChange={(e: ChangeEvent<HTMLInputElement>) =>
-              setLatitude(parseFloat(e.target.value))
-            }
-            placeholder="Latitude"
-          />
-          <TextField.Root
-            value={longitude}
-            type="number"
-            onChange={(e: ChangeEvent<HTMLInputElement>) =>
-              setLongitude(parseFloat(e.target.value))
-            }
-            placeholder="Longitude"
-          />
-        </div>
-
-        <div>
-          <span>What's in your inventory?</span>
-          <div className="flex flex-col gap-2">
-            {itemsMasterList?.map((item: { id: string; label: string }) => (
-              <label key={item.id} className="flex items-center gap-2">
-                <TextField.Root
-                  value={inventory[item.id]}
-                  type="number"
-                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                    setInventory({
-                      ...inventory,
-                      [item.id]: parseInt(e.target.value),
-                    })
-                  }
-                  placeholder="0"
-                />
-                <span>{item.label}</span>
-              </label>
-            ))}
-          </div>
-        </div>
-
-        <footer className="flex justify-between">
-          <Dialog.Close>
-            <Button variant="soft" color="gray" onClick={resetValues}>
-              Cancel
-            </Button>
-          </Dialog.Close>
-          <Dialog.Close>
-            <Button
-              disabled={!name || !age || !gender || !latitude || !longitude}
-              onClick={async () => {
-                await mutation.mutate({
-                  name,
-                  age: age!,
-                  gender: gender!,
-                  lastLocation: {
-                    latitude: latitude!,
-                    longitude: longitude!,
-                  },
-                  inventory,
-                });
+          <label>
+            <span className="text-sm">Age</span>
+            <TextField.Root
+              value={age}
+              type="number"
+              onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                const newAge = parseInt(e.target.value);
+                setAge(newAge < 0 ? 0 : newAge);
               }}
-            >
-              Register
-            </Button>
-          </Dialog.Close>
-        </footer>
-      </div>
+              placeholder={DEFAULT_AGE.toString()}
+            />
+          </label>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="text-sm">Gender</span>
+          <SegmentedControl.Root
+            onValueChange={(val) => {
+              setGender(val as Gender);
+            }}
+            size="2"
+          >
+            <SegmentedControl.Item value="m">
+              <GenderIndicator gender="m" />
+            </SegmentedControl.Item>
+            <SegmentedControl.Item value="f">
+              <GenderIndicator gender="f" />
+            </SegmentedControl.Item>
+          </SegmentedControl.Root>
+        </div>
+      </fieldset>
+
+      <Separator size="4" />
+
+      <LocationEditor
+        latitude={latitude}
+        longitude={longitude}
+        setLatitude={setLatitude}
+        setLongitude={setLongitude}
+      />
+
+      <Separator size="4" />
+
+      <Inventory items={inventory} setInventory={setInventory} />
+
+      <footer className="flex justify-between">
+        <Dialog.Close>
+          <Button variant="soft" color="gray" onClick={resetValues}>
+            Cancel
+          </Button>
+        </Dialog.Close>
+        <Dialog.Close>
+          <Button
+            disabled={!name || !age || !gender || !latitude || !longitude}
+            onClick={async () => {
+              await mutation.mutate({
+                name,
+                age: age!,
+                gender: gender!,
+                lastLocation: {
+                  latitude: latitude!,
+                  longitude: longitude!,
+                },
+                inventory,
+              });
+            }}
+          >
+            Register
+          </Button>
+        </Dialog.Close>
+      </footer>
 
       <ToastEngine toasts={toasts as ToastsConfig} openToasts={openToasts} />
     </section>

@@ -19,7 +19,7 @@ export type InfectionReport = {
   reporter: string;
 };
 
-export type Inventory = Record<string, number>;
+export type Inventory = Record<Item["id"], number>;
 
 export type Survivor = {
   id?: string;
