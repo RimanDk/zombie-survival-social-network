@@ -25,6 +25,10 @@ class LatLong(BaseModel):
     class Config:
         from_attributes = True
 
+class LatLongUpdate(BaseModel):
+    latitude: float
+    longitude: float
+
 
 class InfectionReport(BaseModel):
     id: UUID

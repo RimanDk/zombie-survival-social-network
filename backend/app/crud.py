@@ -171,7 +171,7 @@ def update_location(db: Session, survivor_id: str, latitude: str, longitude: str
 
     db.commit()
     db.refresh(survivor)
-    return survivor
+    return format_survivor_response(survivor)
 
 def delete_survivor(db: Session, survivor_id: str):
     survivor = db.query(Survivor).get(survivor_id)
@@ -180,4 +180,4 @@ def delete_survivor(db: Session, survivor_id: str):
 
     db.delete(survivor)
     db.commit()
-    return survivor
+    return format_survivor_response(survivor)

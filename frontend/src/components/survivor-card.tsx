@@ -108,7 +108,7 @@ function Distance({
 }: DistanceProps) {
   const { distance } = location;
 
-  if (!distance) {
+  if (distance === undefined) {
     return <span />;
   }
 

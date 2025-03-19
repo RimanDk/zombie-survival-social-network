@@ -3,10 +3,12 @@ import { Progress } from "@radix-ui/themes";
 import classNames from "classnames";
 import { Toast as RadixToast } from "radix-ui";
 
+export type ToastType = "info" | "success" | "warning" | "error";
+
 interface ToastProps {
   open: boolean;
   duration?: number;
-  type?: "info" | "success" | "warning" | "error";
+  type?: ToastType;
   title?: string;
   description?: string;
   titleIcon?: React.ReactNode;
