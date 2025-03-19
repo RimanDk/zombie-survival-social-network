@@ -1,16 +1,23 @@
 // libs
-import { Button } from "@radix-ui/themes";
+import { AlertDialog, Button, Tooltip } from "@radix-ui/themes";
 import classNames from "classnames";
-import { useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { FaExchangeAlt, FaMapMarkerAlt } from "react-icons/fa";
 import { FiAlertTriangle } from "react-icons/fi";
+import { IoChevronBackOutline } from "react-icons/io5";
 import { MdOutlineKeyboardArrowDown } from "react-icons/md";
 import { useShallow } from "zustand/react/shallow";
 
 // internals
 import { useSurvivorStore } from "../stores";
 import { LatLon, Survivor } from "../types";
-import { GenderIndicator, InfectionReportGauge } from ".";
+import {
+  GenderIndicator,
+  InfectionReportGauge,
+  ToastEngine,
+  ToastsConfig,
+} from ".";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 interface SurvivorCardProps {
   survivor: Survivor;
@@ -19,6 +26,63 @@ export function SurvivorCard({ survivor }: SurvivorCardProps) {
   const myId = useSurvivorStore((state) => state.id);
 
   const [isCollapsed, setIsCollapsed] = useState(true);
+
+  const alreadyReported = !!~(survivor.infectionReports ?? []).findIndex(
+    ({ reporter_id }) => reporter_id === myId,
+  );
+
+  const queryClient = useQueryClient();
+
+  const mutationFn = useCallback(async () => {
+    const headers = new Headers();
+    headers.append("X-User-Id", myId!);
+
+    const response = await fetch(`/api/survivors/${survivor.id}/report/`, {
+      method: "POST",
+      headers,
+    });
+
+    if (!response.ok) {
+      throw new Error("An error occurred");
+    }
+    return await response.json();
+  }, [myId, survivor.id]);
+
+  const mutation = useMutation({
+    mutationFn,
+    onError: (err) => {
+      if (err instanceof Error && err.message === "Unauthorized") {
+        setOpenToasts(["report-unauthorized"]);
+        return;
+      }
+      setOpenToasts(["report-error"]);
+    },
+    onSuccess: () => {
+      setOpenToasts(["report-success"]);
+    },
+  });
+
+  const toasts = useMemo(
+    () => ({
+      "report-success": {
+        title: `${survivor.name} reported!`,
+        description: "Thank you for your report! Stay safe out there!",
+        type: "success",
+      },
+      "report-unauthorized": {
+        title: "Unauthorized",
+        description: "Your id doesn't match any we have in the system",
+        type: "error",
+      },
+      "report-error": {
+        title: "Failed to report",
+        description: "An error occurred while adding your report to the system",
+        type: "error",
+      },
+    }),
+    [survivor.name],
+  );
+  const [openToasts, setOpenToasts] = useState<(keyof typeof toasts)[]>([]);
 
   return (
     <section
@@ -84,12 +148,58 @@ export function SurvivorCard({ survivor }: SurvivorCardProps) {
           <Button size="1">
             <FaExchangeAlt /> Trade
           </Button>
-          <Button size="1">
-            <FiAlertTriangle />
-            Report
-          </Button>
+          <AlertDialog.Root>
+            <Tooltip
+              content={
+                alreadyReported ?
+                  "You have already reported this person"
+                : "If you are certain this person is infected, you should report it"
+              }
+              maxWidth="10rem"
+            >
+              <AlertDialog.Trigger>
+                <Button size="1" disabled={alreadyReported}>
+                  <FiAlertTriangle />
+                  Report
+                </Button>
+              </AlertDialog.Trigger>
+            </Tooltip>
+
+            <AlertDialog.Content maxWidth="30rem">
+              <AlertDialog.Title>Report {survivor.name}</AlertDialog.Title>
+              <AlertDialog.Description>
+                Are you sure? If {survivor.name} is infected, you should report
+                them. At the same time, however, you should be certain before
+                doing so. Once a person has been reported by three different
+                survivors, they will be marked as infected and won't show up in
+                the list anymore.
+              </AlertDialog.Description>
+              <footer className="flex items-center justify-between pt-4">
+                <AlertDialog.Cancel className="AlertDialogAction">
+                  <Button color="gray">
+                    <IoChevronBackOutline /> Cancel
+                  </Button>
+                </AlertDialog.Cancel>
+                <AlertDialog.Action className="AlertDialogAction">
+                  <Button
+                    onClick={async () => {
+                      await mutation.mutate();
+                      queryClient.invalidateQueries({
+                        queryKey: ["get-survivors", myId],
+                      });
+                    }}
+                  >
+                    <FiAlertTriangle />
+                    Report
+                  </Button>
+                </AlertDialog.Action>
+              </footer>
+            </AlertDialog.Content>
+          </AlertDialog.Root>
         </footer>
       </div>
+
+      <ToastEngine toasts={toasts as ToastsConfig} openToasts={openToasts} />
     </section>
   );
 }

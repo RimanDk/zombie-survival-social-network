@@ -56,7 +56,7 @@ export function Register() {
       const errorData = await response.json().catch(() => null);
       throw new Error(errorData?.detail ?? "An error occurred");
     }
-    return response.json();
+    return await response.json();
   }, []);
 
   const mutation = useMutation({

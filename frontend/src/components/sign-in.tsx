@@ -1,18 +1,16 @@
 // libs
 import { Button, Dialog, TextField } from "@radix-ui/themes";
 import { useQuery } from "@tanstack/react-query";
-import { ChangeEvent, useState } from "react";
+import { ChangeEvent, useMemo, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 
 // internals
 import { isErrorState, isSurvivor } from "../helpers";
 import { useSurvivorStore } from "../stores";
 import { ErrorState, Survivor } from "../types";
+import { ToastEngine, ToastsConfig } from ".";
 
-interface SignInProps {
-  openErrorToast: () => void;
-}
-export function SignIn({ openErrorToast }: SignInProps) {
+export function SignIn() {
   const { identify, updateInventory } = useSurvivorStore(
     useShallow((state) => ({
       identify: state.actions.identify,
@@ -24,12 +22,32 @@ export function SignIn({ openErrorToast }: SignInProps) {
 
   const { refetch, isFetching } = useQuery<Survivor | ErrorState>({
     queryKey: ["get-survivor", name],
-    queryFn: () =>
-      fetch(`/api/survivors/${name}`)
-        .then((res) => res.json())
-        .catch((err) => console.log(err)),
+    queryFn: async () => {
+      const response = await fetch(`/api/survivors/${name}`);
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          setOpenToasts(["signin-error"]);
+          throw new Error("Not found");
+        }
+        throw new Error("An error occurred");
+      }
+      return await response.json();
+    },
     enabled: false,
   });
+
+  const toasts = useMemo(
+    () => ({
+      "signin-error": {
+        title: "Error",
+        description: "Could not find anyone in the system with that name",
+        type: "error",
+      },
+    }),
+    [],
+  );
+  const [openToasts, setOpenToasts] = useState<(keyof typeof toasts)[]>([]);
 
   return (
     <section className="flex flex-col gap-3">
@@ -79,7 +97,7 @@ export function SignIn({ openErrorToast }: SignInProps) {
               }
 
               if (isErrorState(data)) {
-                openErrorToast();
+                setOpenToasts(["signin-error"]);
               }
 
               setName("");
@@ -91,6 +109,8 @@ export function SignIn({ openErrorToast }: SignInProps) {
           </Button>
         </Dialog.Close>
       </footer>
+
+      <ToastEngine toasts={toasts as ToastsConfig} openToasts={openToasts} />
     </section>
   );
 }

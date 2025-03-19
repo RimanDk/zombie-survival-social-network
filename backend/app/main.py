@@ -57,8 +57,15 @@ def create_survivor(survivor: SurvivorCreate, db: Session = Depends(get_db)):
 
 
 @app.post("/survivors/{reported_id}/report/", response_model=InfectionReport)
-def report_infection(reported_id: str, reporter_id: str, db: Session = Depends(get_db)):
-    report = crud.report_infection(db, reporter_id, reported_id)
+def report_infection(
+    reported_id: str,
+    user_id: str = Header(None, alias="X-User-Id"),
+    db: Session = Depends(get_db)):
+
+    if not user_id:
+        raise HTTPException(status_code=401, detail="You need to be logged in to report an infection.")
+
+    report = crud.report_infection(db, user_id, reported_id)
     return report
 
 
@@ -68,6 +75,9 @@ def update_location(
     latlong: LatLongUpdate,
     user_id: str = Header(None, alias="X-User-Id"),
     db: Session = Depends(get_db)):
+
+    if not user_id:
+        raise HTTPException(status_code=401, detail="You need to be logged in.")
 
     if user_id != survivor_id:
         raise HTTPException(status_code=401, detail="You can only update your own location.")

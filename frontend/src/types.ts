@@ -15,8 +15,9 @@ export type Item = {
 
 export type InfectionReport = {
   id?: string;
-  created: Date;
-  reporter: string;
+  created_at: Date;
+  reporter_id: string;
+  reported_id: string;
 };
 
 export type Inventory = Record<Item["id"], number>;
