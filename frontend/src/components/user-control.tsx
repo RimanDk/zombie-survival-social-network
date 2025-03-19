@@ -11,10 +11,31 @@ import { useCallback } from "react";
 import { useShallow } from "zustand/react/shallow";
 
 // internals
-import { useSurvivorStore } from "../stores";
-import { ErrorState, Survivor } from "../types";
 import { isSurvivor } from "../helpers";
+import { Toast, useSurvivorStore, useToastsStore } from "../stores";
+import { ErrorState, Survivor } from "../types";
 import { Register, SignIn, UserPanel } from ".";
+
+const TOASTS: Record<string, Toast> = {
+  "loadprofile-not-fount": {
+    title: "Error",
+    description: "Could not find your profile in the system",
+    type: "error",
+    open: false,
+  },
+  "loadprofile-error": {
+    title: "Error",
+    description: "An error occurred while loading your profile",
+    type: "error",
+    open: false,
+  },
+  "loadprofile-data-corrupted": {
+    title: "Error",
+    description: "Your profile data is corrupted",
+    type: "error",
+    open: false,
+  },
+};
 
 export function UserCenter() {
   const { myId, myName, identify, updateInventory } = useSurvivorStore(
@@ -26,12 +47,27 @@ export function UserCenter() {
     })),
   );
 
+  const { openToast, bulkRegisterToasts } = useToastsStore(
+    useShallow((state) => ({
+      openToast: state.actions.openToast,
+      bulkRegisterToasts: state.actions.bulkRegisterToasts,
+    })),
+  );
+  // Avoid updating ToastsEngine while this renders
+  setTimeout(() => bulkRegisterToasts({ ...TOASTS }), 0);
+
   const queryFn = useCallback(async () => {
     const response = await fetch(`/api/survivors/${myId}`);
 
     if (!response.ok) {
+      if (response.status === 404) {
+        openToast("loadprofile-not-fount");
+        throw new Error("Not found");
+      }
+      openToast("loadprofile-error");
       throw new Error("An error occurred");
     }
+
     try {
       const data = await response.json();
       if (isSurvivor(data) && data.id === myId) {
@@ -45,10 +81,10 @@ export function UserCenter() {
       }
       return data;
     } catch (err) {
-      console.error(err);
-      throw new Error("An error occurred parsing response");
+      openToast("loadprofile-data-corrupted");
+      throw err;
     }
-  }, [myId, identify, updateInventory]);
+  }, [myId, identify, updateInventory, openToast]);
 
   const { isFetching } = useQuery<Survivor | ErrorState>({
     queryKey: ["get-survivor", myId],

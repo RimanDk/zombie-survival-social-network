@@ -1,15 +1,34 @@
 // libs
 import { Button, TextField } from "@radix-ui/themes";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { ChangeEvent, useCallback, useMemo, useState } from "react";
+import { ChangeEvent, useCallback, useState } from "react";
 import { FaMap } from "react-icons/fa";
 import { useShallow } from "zustand/react/shallow";
 
 // internals
-import { useSurvivorStore } from "../stores";
+import { Toast, useSurvivorStore, useToastsStore } from "../stores";
 import { LatLon } from "../types";
-import { ToastEngine, ToastsConfig } from ".";
 
+const TOASTS: Record<string, Toast> = {
+  "location-update-success": {
+    title: "Location updated",
+    description: "Your location has been updated successfully",
+    type: "success",
+    open: false,
+  },
+  "location-update-error": {
+    title: "Location update failed",
+    description: "An error occurred while updating your location",
+    type: "error",
+    open: false,
+  },
+  "location-update-unauthorized": {
+    title: "Location update failed",
+    description: "You are not authorized to update another survivor's location",
+    type: "error",
+    open: false,
+  },
+};
 interface LocationEditorProps {
   latitude?: number;
   longitude?: number;
@@ -31,6 +50,16 @@ export function LocationEditor({
       identify: state.actions.identify,
     })),
   );
+
+  const { openToast, bulkRegisterToasts } = useToastsStore(
+    useShallow((state) => ({
+      openToast: state.actions.openToast,
+      bulkRegisterToasts: state.actions.bulkRegisterToasts,
+    })),
+  );
+  // Avoid updating ToastsEngine while this renders
+  setTimeout(() => bulkRegisterToasts({ ...TOASTS }));
+
   const [tempLatitude, setTempLatitude] = useState<number>(myLatitude ?? 0);
   const [tempLongitude, setTempLongitude] = useState<number>(myLongitude ?? 0);
 
@@ -49,105 +78,72 @@ export function LocationEditor({
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
         if (errorData?.status === 401) {
+          openToast("location-update-unauthorized");
           throw new Error("Unauthorized");
         }
+        openToast("location-update-error");
         throw new Error(errorData?.detail ?? "An error occurred");
       }
-      return response.json();
     },
-    [myId],
+    [myId, openToast],
   );
 
   const mutation = useMutation({
     mutationFn,
-    onError: (err) => {
-      if (err.message === "Unauthorized") {
-        setOpenToasts(["location-update-unauthorized"]);
-        return;
-      }
-      setOpenToasts(["location-update-error"]);
-    },
     onSuccess: async () => {
       identify(myId, myName, tempLatitude, tempLongitude);
       await queryClient.invalidateQueries({
         queryKey: ["get-survivors", myId],
       });
-      setOpenToasts(["location-update-success"]);
+      openToast("location-update-success");
     },
   });
 
   const queryClient = useQueryClient();
 
-  const toasts = useMemo(
-    () => ({
-      "location-update-success": {
-        title: "Location updated",
-        description: "Your location has been updated successfully",
-        type: "success",
-      },
-      "location-update-error": {
-        title: "Location update failed",
-        description: "An error occurred while updating your location",
-        type: "error",
-      },
-      "location-update-unauthorized": {
-        title: "Location update failed",
-        description:
-          "You are not authorized to update another survivor's location",
-        type: "error",
-      },
-    }),
-    [],
-  );
-  const [openToasts, setOpenToasts] = useState<(keyof typeof toasts)[]>([]);
-
   return (
-    <>
-      <fieldset>
-        <p className="text-lime-500">Location</p>
-        <label>
-          <span className="text-sm">Latitude</span>
-          <TextField.Root
-            type="number"
-            value={extLatitude ?? tempLatitude}
-            onChange={(e: ChangeEvent<HTMLInputElement>) =>
-              (extSetLatitude ?? setTempLatitude)(parseFloat(e.target.value))
+    <fieldset>
+      <p className="text-lime-500">Location</p>
+      <label>
+        <span className="text-sm">Latitude</span>
+        <TextField.Root
+          type="number"
+          value={extLatitude ?? tempLatitude}
+          onChange={(e: ChangeEvent<HTMLInputElement>) =>
+            (extSetLatitude ?? setTempLatitude)(parseFloat(e.target.value))
+          }
+        />
+      </label>
+
+      <label>
+        <span className="text-sm">Longitude</span>
+        <TextField.Root
+          type="number"
+          value={extLongitude ?? tempLongitude}
+          onChange={(e: ChangeEvent<HTMLInputElement>) =>
+            (extSetLongitude ?? setTempLongitude)(parseFloat(e.target.value))
+          }
+        />
+      </label>
+
+      {!extSetLatitude && !extLongitude && (
+        <div className="flex justify-end pt-2">
+          <Button
+            disabled={
+              tempLatitude === myLatitude && tempLongitude === myLongitude
             }
-          />
-        </label>
-
-        <label>
-          <span className="text-sm">Longitude</span>
-          <TextField.Root
-            type="number"
-            value={extLongitude ?? tempLongitude}
-            onChange={(e: ChangeEvent<HTMLInputElement>) =>
-              (extSetLongitude ?? setTempLongitude)(parseFloat(e.target.value))
-            }
-          />
-        </label>
-
-        {!extSetLatitude && !extLongitude && (
-          <div className="flex justify-end pt-2">
-            <Button
-              disabled={
-                tempLatitude === myLatitude && tempLongitude === myLongitude
-              }
-              onClick={async () => {
-                await mutation.mutate({
-                  latitude: tempLatitude,
-                  longitude: tempLongitude,
-                });
-              }}
-            >
-              <FaMap />
-              Update location
-            </Button>
-          </div>
-        )}
-      </fieldset>
-
-      <ToastEngine toasts={toasts as ToastsConfig} openToasts={openToasts} />
-    </>
+            onClick={async () => {
+              await mutation.mutate({
+                latitude: tempLatitude,
+                longitude: tempLongitude,
+              });
+            }}
+          >
+            <FaMap />
+            Update location
+          </Button>
+        </div>
+      )}
+    </fieldset>
   );
 }

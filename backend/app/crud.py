@@ -79,7 +79,9 @@ def get_survivors(db: Session, user_id: Optional[str] = None, max_distance: Opti
     survivor_list = [format_survivor_response(s, requesting_survivor) for s in survivors]
 
     # Sort by distance (None distances go last)
-    survivor_list.sort(key=lambda s: (s["lastLocation"]["distance"] is None, s["lastLocation"]["distance"] or 0))
+    survivor_list.sort(
+        key=lambda s: (s["lastLocation"]["distance"] is None, s["lastLocation"]["distance"] or 0)
+    )
 
     if max_distance:
         survivor_list = [s for s in survivor_list if s["lastLocation"]["distance"] and s["lastLocation"]["distance"] <= max_distance]

@@ -6,21 +6,52 @@ import { ChangeEvent } from "react";
 // internals
 import { Item, Inventory as TInventory } from "../types";
 import { FaMinus, FaPlus } from "react-icons/fa";
+import { Toast, useToastsStore } from "../stores";
+import { useShallow } from "zustand/react/shallow";
 
+const TOASTS: Record<string, Toast> = {
+  "load-items-error": {
+    title: "Error",
+    description: "An error occurred while loading items",
+    type: "error",
+    open: false,
+  },
+  "load-items-data-corrupted": {
+    title: "Error",
+    description: "Items data is corrupted",
+    type: "error",
+    open: false,
+  },
+};
 interface InventoryProps {
   items: TInventory;
   setInventory?: (inventory: TInventory) => void;
 }
 export function Inventory({ items, setInventory }: InventoryProps) {
+  const { openToast, bulkRegisterToasts } = useToastsStore(
+    useShallow((state) => ({
+      openToast: state.actions.openToast,
+      bulkRegisterToasts: state.actions.bulkRegisterToasts,
+    })),
+  );
+  // Avoid updating ToastsEngine while this renders
+  setTimeout(() => bulkRegisterToasts({ ...TOASTS }), 0);
+
   const { data: possibleItems } = useQuery<Item[]>({
     queryKey: ["get-items"],
     queryFn: async () => {
       const response = await fetch("/api/items/");
 
       if (!response.ok) {
+        openToast("load-items-error");
         throw new Error("An error occurred");
       }
-      return await response.json();
+      try {
+        return await response.json();
+      } catch (err) {
+        openToast("load-items-data-corrupted");
+        throw err;
+      }
     },
   });
 

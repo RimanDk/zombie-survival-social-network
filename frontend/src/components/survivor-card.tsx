@@ -1,7 +1,8 @@
 // libs
 import { AlertDialog, Button, Tooltip } from "@radix-ui/themes";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import classNames from "classnames";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 import { FaExchangeAlt, FaMapMarkerAlt } from "react-icons/fa";
 import { FiAlertTriangle } from "react-icons/fi";
 import { IoChevronBackOutline } from "react-icons/io5";
@@ -9,21 +10,44 @@ import { MdOutlineKeyboardArrowDown } from "react-icons/md";
 import { useShallow } from "zustand/react/shallow";
 
 // internals
-import { useSurvivorStore } from "../stores";
+import { Toast, useSurvivorStore, useToastsStore } from "../stores";
 import { LatLon, Survivor } from "../types";
-import {
-  GenderIndicator,
-  InfectionReportGauge,
-  ToastEngine,
-  ToastsConfig,
-} from ".";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { GenderIndicator, InfectionReportGauge } from ".";
 
+const TOASTS: Record<string, Toast> = {
+  "report-success": {
+    title: "Infection reported!",
+    description: "Thank you! Stay safe out there!",
+    type: "success",
+    open: false,
+  },
+  "report-unauthorized": {
+    title: "Unauthorized",
+    description: "Your id doesn't match any we have in the system",
+    type: "error",
+    open: false,
+  },
+  "report-error": {
+    title: "Failed to report",
+    description: "An error occurred while adding your report to the system",
+    type: "error",
+    open: false,
+  },
+};
 interface SurvivorCardProps {
   survivor: Survivor;
 }
 export function SurvivorCard({ survivor }: SurvivorCardProps) {
   const myId = useSurvivorStore((state) => state.id);
+
+  const { openToast, bulkRegisterToasts } = useToastsStore(
+    useShallow((state) => ({
+      openToast: state.actions.openToast,
+      bulkRegisterToasts: state.actions.bulkRegisterToasts,
+    })),
+  );
+  // Avoid updating ToastsEngine while this renders
+  setTimeout(() => bulkRegisterToasts({ ...TOASTS }), 0);
 
   const [isCollapsed, setIsCollapsed] = useState(true);
 
@@ -43,46 +67,22 @@ export function SurvivorCard({ survivor }: SurvivorCardProps) {
     });
 
     if (!response.ok) {
+      if (response.status === 401) {
+        openToast("report-unauthorized");
+        throw new Error("Unauthorized");
+      }
+      openToast("report-error");
       throw new Error("An error occurred");
     }
     return await response.json();
-  }, [myId, survivor.id]);
+  }, [myId, survivor.id, openToast]);
 
   const mutation = useMutation({
     mutationFn,
-    onError: (err) => {
-      if (err instanceof Error && err.message === "Unauthorized") {
-        setOpenToasts(["report-unauthorized"]);
-        return;
-      }
-      setOpenToasts(["report-error"]);
-    },
     onSuccess: () => {
-      setOpenToasts(["report-success"]);
+      openToast("report-success");
     },
   });
-
-  const toasts = useMemo(
-    () => ({
-      "report-success": {
-        title: `${survivor.name} reported!`,
-        description: "Thank you for your report! Stay safe out there!",
-        type: "success",
-      },
-      "report-unauthorized": {
-        title: "Unauthorized",
-        description: "Your id doesn't match any we have in the system",
-        type: "error",
-      },
-      "report-error": {
-        title: "Failed to report",
-        description: "An error occurred while adding your report to the system",
-        type: "error",
-      },
-    }),
-    [survivor.name],
-  );
-  const [openToasts, setOpenToasts] = useState<(keyof typeof toasts)[]>([]);
 
   return (
     <section
@@ -198,8 +198,6 @@ export function SurvivorCard({ survivor }: SurvivorCardProps) {
           </AlertDialog.Root>
         </footer>
       </div>
-
-      <ToastEngine toasts={toasts as ToastsConfig} openToasts={openToasts} />
     </section>
   );
 }

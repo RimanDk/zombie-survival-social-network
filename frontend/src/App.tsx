@@ -1,27 +1,46 @@
 // libs
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
+import { useShallow } from "zustand/react/shallow";
 
 // internals
-import { DistanceFilter, UserCenter, SurvivorCard } from "./components";
-import { Item, Survivor } from "./types";
-import { useSurvivorStore } from "./stores";
+import {
+  DistanceFilter,
+  UserCenter,
+  SurvivorCard,
+  ToastEngine,
+} from "./components";
+import { Toast, useSurvivorStore, useToastsStore } from "./stores";
+import { Survivor } from "./types";
+
+const TOASTS: Record<string, Toast> = {
+  "load-survivors-error": {
+    title: "Error",
+    description: "An error occurred while loading survivors",
+    type: "error",
+    open: false,
+  },
+  "load-survivors-data-corrupted": {
+    title: "Error",
+    description: "Survivors data is corrupted",
+    type: "error",
+    open: false,
+  },
+};
 
 export function App() {
   const myId = useSurvivorStore((state) => state.id);
+
+  const { openToast, bulkRegisterToasts } = useToastsStore(
+    useShallow((state) => ({
+      openToast: state.actions.openToast,
+      bulkRegisterToasts: state.actions.bulkRegisterToasts,
+    })),
+  );
+  // Avoid updating ToastsEngine while this renders
+  setTimeout(() => bulkRegisterToasts({ ...TOASTS }), 0);
+
   const [maxDistance, setMaxDistance] = useState<number | undefined>();
-
-  const { error: itemsMasterListError } = useQuery<Item[]>({
-    queryKey: ["get-items"],
-    queryFn: async () => {
-      const response = await fetch("/api/items/");
-
-      if (!response.ok) {
-        throw new Error("An error occurred");
-      }
-      return await response.json();
-    },
-  });
 
   const { data: survivors } = useQuery<Survivor[]>({
     queryKey: ["get-survivors", myId, maxDistance],
@@ -42,16 +61,17 @@ export function App() {
       });
 
       if (!response.ok) {
+        openToast("load-survivors-error");
         throw new Error("An error occurred");
       }
-
-      return await response.json();
+      try {
+        return await response.json();
+      } catch (err) {
+        openToast("load-survivors-data-corrupted");
+        throw err;
+      }
     },
   });
-
-  if (itemsMasterListError) {
-    return null;
-  }
 
   return (
     <div className="p-4 sm:p-6">
@@ -89,6 +109,8 @@ export function App() {
           </ul>
         )}
       </section>
+
+      <ToastEngine />
     </div>
   );
 }
