@@ -84,7 +84,10 @@ def get_survivors(db: Session, user_id: Optional[str] = None, max_distance: Opti
     )
 
     if max_distance:
-        survivor_list = [s for s in survivor_list if s["lastLocation"]["distance"] and s["lastLocation"]["distance"] <= max_distance]
+        survivor_list = [
+            s for s in survivor_list
+            if s["lastLocation"]["distance"] is not None and s["lastLocation"]["distance"] <= max_distance
+        ]
 
     return survivor_list
 
