@@ -3,11 +3,27 @@ import { useShallow } from "zustand/react/shallow";
 import { Inventory } from "./inventory";
 
 // internals
-import { useSurvivorStore } from "../stores";
-import { Inventory as TInventory, Survivor } from "../types";
 import { Button, Dialog } from "@radix-ui/themes";
-import { useMemo, useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useCallback, useMemo, useState } from "react";
 import { useItems } from "../hooks";
+import { Toast, useSurvivorStore, useToastsStore } from "../stores";
+import { Survivor, Inventory as TInventory } from "../types";
+
+const TOASTS: Record<string, Toast> = {
+  "trade-error": {
+    title: "Trade failed",
+    description: "An error occurred while trading items",
+    type: "error",
+    open: false,
+  },
+  "trade-success": {
+    title: "Trade successful",
+    description: "Items have been traded successfully",
+    type: "success",
+    open: false,
+  },
+};
 
 interface TradingPanelProps {
   tradingPartner: Survivor;
@@ -19,6 +35,15 @@ export function TradingPanel({ tradingPartner }: TradingPanelProps) {
       myInventory: state.inventory,
     })),
   );
+
+  const { openToast, bulkRegisterToasts } = useToastsStore(
+    useShallow((state) => ({
+      openToast: state.actions.openToast,
+      bulkRegisterToasts: state.actions.bulkRegisterToasts,
+    })),
+  );
+  // Avoid updating ToastsEngine while this renders
+  setTimeout(() => bulkRegisterToasts({ ...TOASTS }), 0);
 
   const possibleItems = useItems();
 
@@ -48,6 +73,45 @@ export function TradingPanel({ tradingPartner }: TradingPanelProps) {
     return update;
   };
 
+  const queryClient = useQueryClient();
+
+  const mutationFn = useCallback(
+    async (data: {
+      survivor_a_items: { survivor_id: string; items: TInventory };
+      survivor_b_items: { survivor_id: string; items: TInventory };
+    }) => {
+      const headers = new Headers();
+      headers.append("Content-Type", "application/json");
+      headers.append("X-User-Id", myId!);
+
+      const response = await fetch("/api/survivors/trade/", {
+        method: "POST",
+        headers,
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        openToast("trade-error");
+        throw new Error("Failed to trade");
+      }
+      try {
+        return await response.json();
+      } catch (err) {
+        openToast("trade-error");
+        throw err;
+      }
+    },
+    [myId, openToast],
+  );
+
+  const mutation = useMutation({
+    mutationFn,
+    onSuccess: () => {
+      openToast("trade-success");
+      queryClient.invalidateQueries({ queryKey: ["get-survivors", myId] });
+    },
+  });
+
   return (
     <Dialog.Content>
       <Dialog.Title>Trade with {tradingPartner.name}</Dialog.Title>
@@ -66,7 +130,7 @@ export function TradingPanel({ tradingPartner }: TradingPanelProps) {
             <Inventory
               items={myOffer ?? { ...emptyOffer }}
               ceilings={myInventory}
-              title="Offer"
+              title="Trade"
               centralizeTitle
               omitLabels
               setInventory={(offer) => {
@@ -89,7 +153,7 @@ export function TradingPanel({ tradingPartner }: TradingPanelProps) {
             <Inventory
               items={theirOffer ?? { ...emptyOffer }}
               ceilings={tradingPartner.inventory}
-              title="Offer"
+              title="For"
               centralizeTitle
               omitLabels
               setInventory={(offer) => {
@@ -108,7 +172,20 @@ export function TradingPanel({ tradingPartner }: TradingPanelProps) {
           <Button color="gray">Cancel</Button>
         </Dialog.Close>
         <Dialog.Close>
-          <Button>Trade</Button>
+          <Button
+            disabled={!tradingPartner.id || !myOffer || !theirOffer}
+            onClick={async () => {
+              await mutation.mutate({
+                survivor_a_items: { survivor_id: myId!, items: myOffer! },
+                survivor_b_items: {
+                  survivor_id: tradingPartner.id!,
+                  items: theirOffer!,
+                }!,
+              });
+            }}
+          >
+            Trade
+          </Button>
         </Dialog.Close>
       </footer>
     </Dialog.Content>

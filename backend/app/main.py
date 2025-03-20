@@ -3,7 +3,7 @@ from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.pydantic_models import InfectionReport, Item, LatLongUpdate, Survivor, SurvivorCreate
+from app.pydantic_models import InfectionReport, Item, LatLongUpdate, Survivor, SurvivorCreate, SurvivorTradePayload
 import app.crud as crud
 
 # Create the API
@@ -31,9 +31,9 @@ def get_items(db: Session = Depends(get_db)):
 
 @app.get("/survivors/", response_model=List[Survivor])
 def get_survivors(
-    user_id: Optional[str] = Header(None, alias="X-User-Id"),
-    max_distance: Optional[int] = None,
-    db: Session = Depends(get_db)):
+        user_id: Optional[str] = Header(None, alias="X-User-Id"),
+        max_distance: Optional[int] = None,
+        db: Session = Depends(get_db)):
     survivors = crud.get_survivors(db, user_id, max_distance)
     return survivors
 
@@ -43,7 +43,8 @@ def get_survivor_by_name_or_id(name_or_id: str, db: Session = Depends(get_db)):
     try:
         survivor = crud.get_survivor_by_name_or_id(db, name_or_id)
         if not survivor:
-            raise HTTPException(status_code=404, detail="Survivor not found in the system")
+            raise HTTPException(
+                status_code=404, detail="Survivor not found in the system")
         return survivor
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
@@ -58,12 +59,13 @@ def create_survivor(survivor: SurvivorCreate, db: Session = Depends(get_db)):
 
 @app.post("/survivors/{reported_id}/report/", response_model=InfectionReport)
 def report_infection(
-    reported_id: str,
-    user_id: str = Header(None, alias="X-User-Id"),
-    db: Session = Depends(get_db)):
+        reported_id: str,
+        user_id: str = Header(None, alias="X-User-Id"),
+        db: Session = Depends(get_db)):
 
     if not user_id:
-        raise HTTPException(status_code=401, detail="You need to be logged in to report an infection.")
+        raise HTTPException(
+            status_code=401, detail="You need to be logged in to report an infection.")
 
     report = crud.report_infection(db, user_id, reported_id)
     return report
@@ -71,22 +73,61 @@ def report_infection(
 
 @app.put("/survivors/{survivor_id}/location/", response_model=Survivor)
 def update_location(
-    survivor_id: str,
-    latlong: LatLongUpdate,
-    user_id: str = Header(None, alias="X-User-Id"),
-    db: Session = Depends(get_db)):
+        survivor_id: str,
+        latlong: LatLongUpdate,
+        user_id: str = Header(None, alias="X-User-Id"),
+        db: Session = Depends(get_db)):
 
     if not user_id:
-        raise HTTPException(status_code=401, detail="You need to be logged in.")
+        raise HTTPException(
+            status_code=401, detail="You need to be logged in.")
 
     if user_id != survivor_id:
-        raise HTTPException(status_code=401, detail="You can only update your own location.")
+        raise HTTPException(
+            status_code=401, detail="You can only update your own location.")
 
     survivor = crud.update_location(
         db, survivor_id, latlong.latitude, latlong.longitude)
     return survivor
 
+
 @app.delete("/survivors/{survivor_id}/", response_model=Survivor)
 def delete_survivor(survivor_id: str, db: Session = Depends(get_db)):
     survivor = crud.delete_survivor(db, survivor_id)
     return survivor
+
+
+@app.post("/survivors/trade/", response_model=None)
+def trade_items(
+        survivor_a_items: SurvivorTradePayload,
+        survivor_b_items: SurvivorTradePayload,
+        user_id: str = Header(None, alias="X-User-Id"),
+        db: Session = Depends(get_db)):
+
+    if not user_id:
+        raise HTTPException(
+            status_code=401, detail="You need to be logged in to trade items.")
+
+    if str(survivor_a_items.survivor_id) != user_id:
+        raise HTTPException(
+            status_code=401, detail="You can only trade items from your own inventory.")
+
+    if survivor_a_items.survivor_id == survivor_b_items.survivor_id:
+        raise HTTPException(
+            status_code=400, detail="You can't trade items with yourself.")
+
+    try:
+        crud.trade_items(db, survivor_a_items, survivor_b_items)
+    except ValueError as e:
+        error_message = str(e)
+
+        if "not found" in error_message:
+            raise HTTPException(status_code=404, detail=error_message) from e
+        elif "Insufficient items" in error_message:
+            raise HTTPException(status_code=422, detail=error_message) from e
+        elif "not balanced" in error_message:
+            raise HTTPException(status_code=400, detail=error_message) from e
+        else:
+            raise HTTPException(status_code=500, detail=str(e)) from e
+
+    return None

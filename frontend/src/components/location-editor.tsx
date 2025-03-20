@@ -63,6 +63,8 @@ export function LocationEditor({
   const [tempLatitude, setTempLatitude] = useState<number>(myLatitude ?? 0);
   const [tempLongitude, setTempLongitude] = useState<number>(myLongitude ?? 0);
 
+  const queryClient = useQueryClient();
+
   const mutationFn = useCallback(
     async (data: LatLon) => {
       const headers = new Headers();
@@ -92,14 +94,12 @@ export function LocationEditor({
     mutationFn,
     onSuccess: async () => {
       identify(myId, myName, tempLatitude, tempLongitude);
-      await queryClient.invalidateQueries({
+      openToast("location-update-success");
+      queryClient.invalidateQueries({
         queryKey: ["get-survivors", myId],
       });
-      openToast("location-update-success");
     },
   });
-
-  const queryClient = useQueryClient();
 
   return (
     <fieldset>

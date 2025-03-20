@@ -25,6 +25,7 @@ class LatLong(BaseModel):
     class Config:
         from_attributes = True
 
+
 class LatLongUpdate(BaseModel):
     latitude: float
     longitude: float
@@ -39,6 +40,7 @@ class InfectionReport(BaseModel):
     class Config:
         from_attributes = True
 
+
 class Inventory(BaseModel):
     survivor_id: UUID
     item_id: UUID
@@ -46,6 +48,7 @@ class Inventory(BaseModel):
 
     class Config:
         from_attributes = True
+
 
 class Survivor(BaseModel):
     id: Optional[UUID] = None
@@ -59,9 +62,11 @@ class Survivor(BaseModel):
     class Config:
         from_attributes = True
 
+
 class LatLongCreate(BaseModel):
     latitude: float
     longitude: float
+
 
 class SurvivorCreate(BaseModel):
     id: Optional[UUID] = None
@@ -71,3 +76,8 @@ class SurvivorCreate(BaseModel):
     inventory: Dict[UUID, int]
     lastLocation: LatLongCreate
     infectionReports: List[InfectionReport] = []
+
+
+class SurvivorTradePayload(BaseModel):
+    survivor_id: UUID
+    items: Dict[UUID, int]
