@@ -1,73 +1,76 @@
 // libs
-import { useQuery } from "@tanstack/react-query";
 import { IconButton, TextField } from "@radix-ui/themes";
+import classNames from "classnames";
 import { ChangeEvent } from "react";
+import { FaMinus, FaPlus } from "react-icons/fa";
 
 // internals
-import { Item, Inventory as TInventory } from "../types";
-import { FaMinus, FaPlus } from "react-icons/fa";
-import { Toast, useToastsStore } from "../stores";
-import { useShallow } from "zustand/react/shallow";
+import { useItems } from "../hooks";
+import { Inventory as TInventory } from "../types";
 
-const TOASTS: Record<string, Toast> = {
-  "load-items-error": {
-    title: "Error",
-    description: "An error occurred while loading items",
-    type: "error",
-    open: false,
-  },
-  "load-items-data-corrupted": {
-    title: "Error",
-    description: "Items data is corrupted",
-    type: "error",
-    open: false,
-  },
-};
 interface InventoryProps {
   items: TInventory;
+  ceilings?: TInventory;
+  title?: string;
+  centralizeTitle?: boolean;
+  omitLabels?: boolean;
+  grid?: boolean;
+  rowOrientation?: "ltr" | "rtl";
   setInventory?: (inventory: TInventory) => void;
 }
-export function Inventory({ items, setInventory }: InventoryProps) {
-  const { openToast, bulkRegisterToasts } = useToastsStore(
-    useShallow((state) => ({
-      openToast: state.actions.openToast,
-      bulkRegisterToasts: state.actions.bulkRegisterToasts,
-    })),
-  );
-  // Avoid updating ToastsEngine while this renders
-  setTimeout(() => bulkRegisterToasts({ ...TOASTS }), 0);
-
-  const { data: possibleItems } = useQuery<Item[]>({
-    queryKey: ["get-items"],
-    queryFn: async () => {
-      const response = await fetch("/api/items/");
-
-      if (!response.ok) {
-        openToast("load-items-error");
-        throw new Error("An error occurred");
-      }
-      try {
-        return await response.json();
-      } catch (err) {
-        openToast("load-items-data-corrupted");
-        throw err;
-      }
-    },
-  });
+export function Inventory({
+  items,
+  ceilings,
+  title = "Inventory",
+  centralizeTitle = false,
+  omitLabels = false,
+  rowOrientation = "ltr",
+  grid = false,
+  setInventory,
+}: InventoryProps) {
+  const possibleItems = useItems();
 
   return (
     <>
-      <fieldset className="flex flex-col gap-1.5">
-        <p className="text-lime-500">Inventory</p>
+      <fieldset
+        className={classNames("gap-1.5", {
+          "flex flex-col": !grid,
+          "grid grid-cols-2": grid,
+        })}
+      >
+        <p
+          className={classNames("text-lime-500", {
+            "text-center": centralizeTitle,
+            "col-span-2": grid,
+          })}
+        >
+          {title}
+        </p>
         {(possibleItems ?? []).map((item) => (
-          <div key={item.id} className="grid grid-cols-2 items-center gap-2">
-            <span className="text-sm">{item.label}</span>
+          <div
+            key={item.id}
+            className={classNames("flex items-center gap-2", {
+              "xs:flex-row-reverse": rowOrientation === "rtl",
+            })}
+          >
+            {!omitLabels && (
+              <span
+                className={classNames("w-full text-sm", {
+                  "xs:hidden": rowOrientation === "rtl",
+                  "min-w-25": !grid,
+                  "min-w-20": grid,
+                })}
+              >
+                {item.label}
+              </span>
+            )}
             <div className="flex items-center gap-3">
               {setInventory && (
                 <IconButton
                   color="gray"
                   variant="ghost"
                   size="1"
+                  disabled={!items[item.id]}
                   className="group"
                   onClick={() => {
                     const newValue = (items[item.id] ?? 0) - 1;
@@ -82,11 +85,19 @@ export function Inventory({ items, setInventory }: InventoryProps) {
               )}
               <TextField.Root
                 type="number"
+                className="w-10"
                 value={items[item.id] ?? 0}
                 disabled={!setInventory}
                 onChange={(e: ChangeEvent<HTMLInputElement>) => {
                   const value = parseInt(e.target.value, 10);
                   if (isNaN(value)) {
+                    return;
+                  }
+                  if (ceilings && value > ceilings[item.id]) {
+                    setInventory!({
+                      ...items,
+                      [item.id]: ceilings[item.id],
+                    });
                     return;
                   }
                   setInventory!({
@@ -100,6 +111,7 @@ export function Inventory({ items, setInventory }: InventoryProps) {
                   color="gray"
                   variant="ghost"
                   size="1"
+                  disabled={ceilings && items[item.id] >= ceilings[item.id]}
                   className="group"
                   onClick={() => {
                     setInventory({

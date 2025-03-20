@@ -84,11 +84,11 @@ export function App() {
 
       <section>
         <div
-          className="sticky top-0 py-3"
+          className="sticky top-0 z-10 py-2"
           style={{ backgroundColor: "var(--color-background)" }}
         >
           <div
-            className="flex flex-col gap-2 rounded p-3 sm:flex-row sm:items-center sm:justify-between"
+            className="my-3 flex flex-col gap-2 rounded p-3 sm:flex-row sm:items-center sm:justify-between"
             style={{ backgroundColor: "var(--accent-5)" }}
           >
             <h3 className="text-lg leading-5 sm:text-xl">Known survivors</h3>

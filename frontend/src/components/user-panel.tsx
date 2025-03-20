@@ -28,7 +28,7 @@ export function UserPanel() {
 
       <Popover.Content width="20rem">
         <div className="flex flex-col gap-3">
-          <Inventory items={myInventory} />
+          <Inventory items={myInventory} grid />
 
           <Separator size="4" />
 

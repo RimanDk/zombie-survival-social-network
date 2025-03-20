@@ -8,5 +8,6 @@ export * from "./sign-in";
 export * from "./survivor-card";
 export * from "./toast";
 export * from "./toast-engine";
+export * from "./trading-panel";
 export * from "./user-control";
 export * from "./user-panel";

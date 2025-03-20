@@ -1,5 +1,5 @@
 // libs
-import { AlertDialog, Button, Tooltip } from "@radix-ui/themes";
+import { AlertDialog, Button, Dialog, Tooltip } from "@radix-ui/themes";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import classNames from "classnames";
 import { useCallback, useState } from "react";
@@ -12,7 +12,7 @@ import { useShallow } from "zustand/react/shallow";
 // internals
 import { Toast, useSurvivorStore, useToastsStore } from "../stores";
 import { LatLon, Survivor } from "../types";
-import { GenderIndicator, InfectionReportGauge } from ".";
+import { GenderIndicator, InfectionReportGauge, TradingPanel } from ".";
 
 const TOASTS: Record<string, Toast> = {
   "report-success": {
@@ -145,9 +145,16 @@ export function SurvivorCard({ survivor }: SurvivorCardProps) {
             },
           )}
         >
-          <Button size="1">
-            <FaExchangeAlt /> Trade
-          </Button>
+          <Dialog.Root>
+            <Dialog.Trigger>
+              <Button size="1">
+                <FaExchangeAlt /> Trade
+              </Button>
+            </Dialog.Trigger>
+
+            <TradingPanel tradingPartner={survivor} />
+          </Dialog.Root>
+
           <AlertDialog.Root>
             <Tooltip
               content={
