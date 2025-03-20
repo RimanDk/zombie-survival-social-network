@@ -1,3 +1,4 @@
+"""CRUD operations for the Survivors API."""
 from uuid import uuid4, UUID
 from math import cos, radians, sqrt
 from typing import List, Dict, Optional

@@ -1,3 +1,4 @@
+"""Main module for the API, contains all the routes and the FastAPI app"""
 from typing import List, Optional
 from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -25,6 +26,7 @@ app.add_middleware(
 # Routes
 @app.get("/items/", response_model=List[Item])
 def get_items(db: Session = Depends(get_db)):
+    """Get all possible items"""
     items = crud.get_possible_items(db)
     return items
 
@@ -34,12 +36,14 @@ def get_survivors(
         user_id: Optional[str] = Header(None, alias="X-User-Id"),
         max_distance: Optional[int] = None,
         db: Session = Depends(get_db)):
+    """Get all survivors, optionally filtering by max distance from the user"""
     survivors = crud.get_survivors(db, user_id, max_distance)
     return survivors
 
 
 @app.get("/survivors/{name_or_id}", response_model=Optional[Survivor])
 def get_survivor_by_name_or_id(name_or_id: str, db: Session = Depends(get_db)):
+    """Get a survivor by name or ID"""
     try:
         survivor = crud.get_survivor_by_name_or_id(db, name_or_id)
         if not survivor:
@@ -52,6 +56,7 @@ def get_survivor_by_name_or_id(name_or_id: str, db: Session = Depends(get_db)):
 
 @app.post("/survivors/", response_model=Survivor)
 def create_survivor(survivor: SurvivorCreate, db: Session = Depends(get_db)):
+    """"Create a survivor"""
     survivor = crud.create_survivor(
         db, survivor.name, survivor.age, survivor.gender, survivor.lastLocation, survivor.inventory)
     return survivor
@@ -62,6 +67,7 @@ def report_infection(
         reported_id: str,
         user_id: str = Header(None, alias="X-User-Id"),
         db: Session = Depends(get_db)):
+    """"Report a survivor as infected by ID"""
 
     if not user_id:
         raise HTTPException(
@@ -77,6 +83,7 @@ def update_location(
         latlong: LatLongUpdate,
         user_id: str = Header(None, alias="X-User-Id"),
         db: Session = Depends(get_db)):
+    """"Update a survivor's location by ID"""
 
     if not user_id:
         raise HTTPException(
@@ -93,6 +100,7 @@ def update_location(
 
 @app.delete("/survivors/{survivor_id}/", response_model=Survivor)
 def delete_survivor(survivor_id: str, db: Session = Depends(get_db)):
+    """"Delete a survivor by ID"""
     survivor = crud.delete_survivor(db, survivor_id)
     return survivor
 
@@ -104,6 +112,9 @@ def trade_items(
         dry_run: Optional[bool] = False,
         user_id: str = Header(None, alias="X-User-Id"),
         db: Session = Depends(get_db)):
+    """
+    Trade items between two survivors, use dry_run=True to verify if the trade is possible without committing to it
+    """
 
     if not user_id:
         raise HTTPException(

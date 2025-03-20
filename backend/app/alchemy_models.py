@@ -1,3 +1,4 @@
+"""Collection of ORM models for the database."""
 from uuid import uuid4
 from sqlalchemy import Column, Float, Integer, String, ForeignKey, TIMESTAMP, TEXT, text
 from sqlalchemy.orm import relationship
@@ -7,6 +8,7 @@ from app.database import Base, engine
 
 
 class Item(Base):
+    """Model for items that can be carried in a survivor's inventory."""
     __tablename__ = "items"
     id = Column(TEXT, primary_key=True, default=lambda: str(uuid4()))
     label = Column(String)
@@ -15,6 +17,7 @@ class Item(Base):
 
 
 class Survivor(Base):
+    """Model for survivors in the Zombie Apocalypse app."""
     __tablename__ = "survivors"
     id = Column(TEXT, primary_key=True, default=lambda: str(uuid4()))
     name = Column(String, index=True)
@@ -32,6 +35,7 @@ class Survivor(Base):
 
 
 class LatLong(Base):
+    """Model for the last known location of a survivor."""
     __tablename__ = "latlong"
     id = Column(TEXT, primary_key=True, default=lambda: str(uuid4()))
     latitude = Column(Float, nullable=False)
@@ -41,6 +45,7 @@ class LatLong(Base):
 
 
 class InfectionReport(Base):
+    """Model for reports of infection between survivors."""
     __tablename__ = "infection_reports"
     id = Column(TEXT, primary_key=True, default=lambda: str(uuid4()))
     created_at = Column(TIMESTAMP, server_default=text("CURRENT_TIMESTAMP"))
@@ -52,6 +57,7 @@ class InfectionReport(Base):
 
 
 class Inventory(Base):
+    """Model for the inventory of a survivor."""
     __tablename__ = "inventory"
     survivor_id = Column(TEXT, ForeignKey("survivors.id"), primary_key=True)
     item_id = Column(TEXT, ForeignKey("items.id"), primary_key=True)
