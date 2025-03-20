@@ -10,9 +10,14 @@ import { MdOutlineKeyboardArrowDown } from "react-icons/md";
 import { useShallow } from "zustand/react/shallow";
 
 // internals
-import { Toast, useSurvivorStore, useToastsStore } from "../stores";
-import { LatLon, Survivor } from "../types";
 import { GenderIndicator, InfectionReportGauge, TradingPanel } from ".";
+import {
+  Toast,
+  useSearchStore,
+  useSurvivorStore,
+  useToastsStore,
+} from "../stores";
+import { LatLon, Survivor } from "../types";
 
 const TOASTS: Record<string, Toast> = {
   "report-success": {
@@ -39,6 +44,7 @@ interface SurvivorCardProps {
 }
 export function SurvivorCard({ survivor }: SurvivorCardProps) {
   const myId = useSurvivorStore((state) => state.id);
+  const maxDistance = useSearchStore((state) => state.maxDistance);
 
   const { openToast, bulkRegisterToasts } = useToastsStore(
     useShallow((state) => ({
@@ -81,6 +87,9 @@ export function SurvivorCard({ survivor }: SurvivorCardProps) {
     mutationFn,
     onSuccess: () => {
       openToast("report-success");
+      queryClient.invalidateQueries({
+        queryKey: ["get-survivors", myId, maxDistance],
+      });
     },
   });
 
@@ -191,9 +200,6 @@ export function SurvivorCard({ survivor }: SurvivorCardProps) {
                   <Button
                     onClick={async () => {
                       await mutation.mutate();
-                      queryClient.invalidateQueries({
-                        queryKey: ["get-survivors", myId],
-                      });
                     }}
                   >
                     <FiAlertTriangle />

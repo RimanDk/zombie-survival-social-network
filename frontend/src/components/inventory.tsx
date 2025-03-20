@@ -111,7 +111,10 @@ export function Inventory({
                   color="gray"
                   variant="ghost"
                   size="1"
-                  disabled={ceilings && items[item.id] >= ceilings[item.id]}
+                  disabled={
+                    ceilings &&
+                    (items[item.id] ?? 0) >= (ceilings[item.id] ?? 0)
+                  }
                   className="group"
                   onClick={() => {
                     setInventory({

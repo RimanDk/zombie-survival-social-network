@@ -229,11 +229,8 @@ def update_inventory(db: Session, survivor: Survivor, updated_inventory: Dict[st
     db.add_all(new_items)
 
 
-def trade_items(
-        db: Session,
-        survivor_a_items: SurvivorTradePayload,
-        survivor_b_items: SurvivorTradePayload):
-    """Handles the trading of items between two survivors."""
+def validate_trade(db: Session, survivor_a_items: SurvivorTradePayload, survivor_b_items: SurvivorTradePayload):
+    """Validates a trade between two survivors."""
     # Validate that users exist
     survivor_a = db.query(Survivor).get(str(survivor_a_items.survivor_id))
     if not survivor_a:
@@ -252,7 +249,10 @@ def trade_items(
 
     # Validate that the users have the resources in their inventories
     # that they seek to trade
-    def validate_inventory(survivor: Survivor, survivor_inventory: Dict[str, int], offered_items: Dict[UUID, int]):
+    def validate_inventory(
+            survivor: Survivor,
+            survivor_inventory: Dict[str, int],
+            offered_items: Dict[UUID, int]):
         for item_id, offered_quantity in offered_items.items():
             available_quantity = survivor_inventory.get(str(item_id), 0)
             if offered_quantity > available_quantity:
@@ -272,19 +272,56 @@ def trade_items(
     estimated_worth_b = estimate_trade_value(
         survivor_b_items.items, item_catalogue)
 
-    print(estimated_worth_a, estimated_worth_b)
-
     if estimated_worth_a != estimated_worth_b:
-        raise ValueError("Trade is not balanced")
+        raise ValueError(
+            f"Trade is not balanced: Survivor A offers {estimated_worth_a}, Survivor B offers {estimated_worth_b}")
+
+    return True
+
+
+def trade_items(
+        db: Session,
+        survivor_a_items: SurvivorTradePayload,
+        survivor_b_items: SurvivorTradePayload,
+        dry_run: Optional[bool] = False):
+    """Handles the trading of items between two survivors."""
+    try:
+        validate_trade(db, survivor_a_items, survivor_b_items)
+    except ValueError as e:
+        raise e
+
+    if dry_run:
+        return {"message": "Trade is valid"}
+
+    survivor_a = db.query(Survivor).get(str(survivor_a_items.survivor_id))
+    survivor_b = db.query(Survivor).get(str(survivor_b_items.survivor_id))
+    survivor_a_inventory = {
+        str(item.item_id): item.quantity for item in survivor_a.inventory}
+    survivor_b_inventory = {
+        str(item.item_id): item.quantity for item in survivor_b.inventory}
 
     # Perform the trade
     for item_id, quantity in survivor_a_items.items.items():
-        survivor_a_inventory[str(item_id)] -= quantity
-        survivor_b_inventory[str(item_id)] += quantity
+        if not survivor_a_inventory.get(str(item_id)):
+            survivor_a_inventory[str(item_id)] = 0
+        else:
+            survivor_a_inventory[str(item_id)] -= quantity
+
+        if not survivor_b_inventory.get(str(item_id)):
+            survivor_b_inventory[str(item_id)] = quantity
+        else:
+            survivor_b_inventory[str(item_id)] += quantity
 
     for item_id, quantity in survivor_b_items.items.items():
-        survivor_b_inventory[str(item_id)] -= quantity
-        survivor_a_inventory[str(item_id)] += quantity
+        if not survivor_b_inventory.get(str(item_id)):
+            survivor_b_inventory[str(item_id)] = 0
+        else:
+            survivor_b_inventory[str(item_id)] -= quantity
+
+        if not survivor_a_inventory.get(str(item_id)):
+            survivor_a_inventory[str(item_id)] = quantity
+        else:
+            survivor_a_inventory[str(item_id)] += quantity
 
     update_inventory(db, survivor_a, survivor_a_inventory)
     update_inventory(db, survivor_b, survivor_b_inventory)

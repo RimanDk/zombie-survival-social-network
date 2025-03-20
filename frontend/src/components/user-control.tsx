@@ -7,14 +7,13 @@ import {
   VisuallyHidden,
 } from "@radix-ui/themes";
 import { useQuery } from "@tanstack/react-query";
-import { useCallback } from "react";
 import { useShallow } from "zustand/react/shallow";
 
 // internals
+import { Register, SignIn, UserPanel } from ".";
 import { isSurvivor } from "../helpers";
 import { Toast, useSurvivorStore, useToastsStore } from "../stores";
 import { ErrorState, Survivor } from "../types";
-import { Register, SignIn, UserPanel } from ".";
 
 const TOASTS: Record<string, Toast> = {
   "loadprofile-not-fount": {
@@ -56,40 +55,38 @@ export function UserCenter() {
   // Avoid updating ToastsEngine while this renders
   setTimeout(() => bulkRegisterToasts({ ...TOASTS }), 0);
 
-  const queryFn = useCallback(async () => {
-    const response = await fetch(`/api/survivors/${myId}`);
-
-    if (!response.ok) {
-      if (response.status === 404) {
-        openToast("loadprofile-not-fount");
-        throw new Error("Not found");
-      }
-      openToast("loadprofile-error");
-      throw new Error("An error occurred");
-    }
-
-    try {
-      const data = await response.json();
-      if (isSurvivor(data) && data.id === myId) {
-        identify(
-          data.id,
-          data.name,
-          data.lastLocation.latitude,
-          data.lastLocation.longitude,
-        );
-        updateInventory(data.inventory);
-      }
-      return data;
-    } catch (err) {
-      openToast("loadprofile-data-corrupted");
-      throw err;
-    }
-  }, [myId, identify, updateInventory, openToast]);
-
   const { isFetching } = useQuery<Survivor | ErrorState>({
     queryKey: ["get-survivor", myId],
-    queryFn,
-    enabled: !!myId && !myName,
+    queryFn: async () => {
+      const response = await fetch(`/api/survivors/${myId}`);
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          openToast("loadprofile-not-fount");
+          throw new Error("Not found");
+        }
+        openToast("loadprofile-error");
+        throw new Error("An error occurred");
+      }
+
+      try {
+        const data = await response.json();
+        if (isSurvivor(data) && data.id === myId) {
+          identify(
+            data.id,
+            data.name,
+            data.lastLocation.latitude,
+            data.lastLocation.longitude,
+          );
+          updateInventory(data.inventory);
+        }
+        return data;
+      } catch (err) {
+        openToast("loadprofile-data-corrupted");
+        throw err;
+      }
+    },
+    enabled: !!myId,
   });
 
   if (myId && !myName && isFetching) {

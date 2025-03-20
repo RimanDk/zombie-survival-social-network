@@ -1,13 +1,18 @@
 // libs
-import { useShallow } from "zustand/react/shallow";
-import { Inventory } from "./inventory";
-
-// internals
 import { Button, Dialog } from "@radix-ui/themes";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo, useState } from "react";
+import { useShallow } from "zustand/react/shallow";
+
+// internals
+import { Inventory } from ".";
 import { useItems } from "../hooks";
-import { Toast, useSurvivorStore, useToastsStore } from "../stores";
+import {
+  Toast,
+  useSearchStore,
+  useSurvivorStore,
+  useToastsStore,
+} from "../stores";
 import { Survivor, Inventory as TInventory } from "../types";
 
 const TOASTS: Record<string, Toast> = {
@@ -35,6 +40,8 @@ export function TradingPanel({ tradingPartner }: TradingPanelProps) {
       myInventory: state.inventory,
     })),
   );
+
+  const maxDistance = useSearchStore((state) => state.maxDistance);
 
   const { openToast, bulkRegisterToasts } = useToastsStore(
     useShallow((state) => ({
@@ -67,8 +74,9 @@ export function TradingPanel({ tradingPartner }: TradingPanelProps) {
 
   const getUpdatedInventory = (inventory: TInventory, offer: TInventory) => {
     const update = { ...emptyOffer };
+
     for (const key in offer) {
-      update[key] = inventory[key] - offer[key];
+      update[key] = (inventory[key] ?? 0) - (offer[key] ?? 0);
     }
     return update;
   };
@@ -106,9 +114,28 @@ export function TradingPanel({ tradingPartner }: TradingPanelProps) {
 
   const mutation = useMutation({
     mutationFn,
-    onSuccess: () => {
+    onSuccess: async () => {
       openToast("trade-success");
-      queryClient.invalidateQueries({ queryKey: ["get-survivors", myId] });
+
+      setMyTempInventory({
+        ...myInventory,
+      });
+      setMyOffer(undefined);
+      setTheirInventory({
+        ...tradingPartner.inventory,
+      });
+      setTheirOffer(undefined);
+
+      Promise.all([
+        // Refresh my profile
+        queryClient.invalidateQueries({
+          queryKey: ["get-survivor", myId],
+        }),
+        // Refresh full list
+        queryClient.invalidateQueries({
+          queryKey: ["get-survivors", myId, maxDistance],
+        }),
+      ]);
     },
   });
 

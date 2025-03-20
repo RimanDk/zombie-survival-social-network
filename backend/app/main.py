@@ -101,6 +101,7 @@ def delete_survivor(survivor_id: str, db: Session = Depends(get_db)):
 def trade_items(
         survivor_a_items: SurvivorTradePayload,
         survivor_b_items: SurvivorTradePayload,
+        dry_run: Optional[bool] = False,
         user_id: str = Header(None, alias="X-User-Id"),
         db: Session = Depends(get_db)):
 
@@ -117,7 +118,11 @@ def trade_items(
             status_code=400, detail="You can't trade items with yourself.")
 
     try:
-        crud.trade_items(db, survivor_a_items, survivor_b_items)
+        crud.trade_items(
+            db,
+            survivor_a_items,
+            survivor_b_items,
+            dry_run)
     except ValueError as e:
         error_message = str(e)
 

@@ -6,7 +6,12 @@ import { FaMap } from "react-icons/fa";
 import { useShallow } from "zustand/react/shallow";
 
 // internals
-import { Toast, useSurvivorStore, useToastsStore } from "../stores";
+import {
+  Toast,
+  useSearchStore,
+  useSurvivorStore,
+  useToastsStore,
+} from "../stores";
 import { LatLon } from "../types";
 
 const TOASTS: Record<string, Toast> = {
@@ -50,6 +55,8 @@ export function LocationEditor({
       identify: state.actions.identify,
     })),
   );
+
+  const maxDistance = useSearchStore((state) => state.maxDistance);
 
   const { openToast, bulkRegisterToasts } = useToastsStore(
     useShallow((state) => ({
@@ -96,7 +103,10 @@ export function LocationEditor({
       identify(myId, myName, tempLatitude, tempLongitude);
       openToast("location-update-success");
       queryClient.invalidateQueries({
-        queryKey: ["get-survivors", myId],
+        queryKey: ["get-survivors", myId, maxDistance],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["get-survivor", myId],
       });
     },
   });

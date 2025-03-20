@@ -1,16 +1,20 @@
 // libs
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 
 // internals
 import {
   DistanceFilter,
-  UserCenter,
   SurvivorCard,
   ToastEngine,
+  UserCenter,
 } from "./components";
-import { Toast, useSurvivorStore, useToastsStore } from "./stores";
+import {
+  Toast,
+  useSearchStore,
+  useSurvivorStore,
+  useToastsStore,
+} from "./stores";
 import { Survivor } from "./types";
 
 const TOASTS: Record<string, Toast> = {
@@ -40,7 +44,7 @@ export function App() {
   // Avoid updating ToastsEngine while this renders
   setTimeout(() => bulkRegisterToasts({ ...TOASTS }), 0);
 
-  const [maxDistance, setMaxDistance] = useState<number | undefined>();
+  const maxDistance = useSearchStore((state) => state.maxDistance);
 
   const { data: survivors } = useQuery<Survivor[]>({
     queryKey: ["get-survivors", myId, maxDistance],
@@ -60,12 +64,14 @@ export function App() {
         headers,
       });
 
+      console.info("Refetched survivors");
+
       if (!response.ok) {
         openToast("load-survivors-error");
         throw new Error("An error occurred");
       }
       try {
-        return await response.json();
+        return response.json();
       } catch (err) {
         openToast("load-survivors-data-corrupted");
         throw err;
@@ -92,10 +98,7 @@ export function App() {
             style={{ backgroundColor: "var(--accent-5)" }}
           >
             <h3 className="text-lg leading-5 sm:text-xl">Known survivors</h3>
-            <DistanceFilter
-              maxDistance={maxDistance}
-              setMaxDistance={setMaxDistance}
-            />
+            <DistanceFilter />
           </div>
         </div>
 

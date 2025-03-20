@@ -1,17 +1,17 @@
 // libs
 import { Button, IconButton } from "@radix-ui/themes";
 import { IoMdInfinite } from "react-icons/io";
-import { useSurvivorStore } from "../stores";
+import { useShallow } from "zustand/react/shallow";
+import { useSearchStore, useSurvivorStore } from "../stores";
 
-interface DistanceFilterProps {
-  maxDistance: number | undefined;
-  setMaxDistance: (distance: number | undefined) => void;
-}
-export function DistanceFilter({
-  maxDistance,
-  setMaxDistance,
-}: DistanceFilterProps) {
+export function DistanceFilter() {
   const myId = useSurvivorStore((state) => state.id);
+  const { maxDistance, setMaxDistance } = useSearchStore(
+    useShallow((state) => ({
+      maxDistance: state.maxDistance,
+      setMaxDistance: state.actions.setMaxDistance,
+    })),
+  );
 
   if (!myId) {
     return null;
@@ -33,7 +33,7 @@ export function DistanceFilter({
       <IconButton
         size="1"
         color={!maxDistance ? "lime" : "gray"}
-        onClick={() => setMaxDistance(undefined)}
+        onClick={() => setMaxDistance(null)}
       >
         <IoMdInfinite />
       </IconButton>
