@@ -1,54 +1,23 @@
-# React + TypeScript + Vite
+# Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## The stack
 
-Currently, two official plugins are available:
+### Choice of main library
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+Welcome to the frontend portion of the app! The challenge is less rigorous about the choice of tech for the frontend. The only requirement is that it should be a SPA and that it be responsive. So, I went with what I know and chose `React` with `TypeScript` served by `Vite`.
 
-## Expanding the ESLint configuration
+### Styling
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+In this day and age, there are a multitude of choices for writing CSS. They all have pros and cons. After having navigated the likes of `SCSS`/`LESS`, `Styled Components`, `StyleXJS` and `Tailwind` over many years, I decided to go with `Tailwind` for this project. Simply put, it's the one that affords me the fastest development time and causes least friction at the time of writing.
 
-```js
-export default tseslint.config({
-  extends: [
-    // Remove ...tseslint.configs.recommended and replace with this
-    ...tseslint.configs.recommendedTypeChecked,
-    // Alternatively, use this for stricter rules
-    ...tseslint.configs.strictTypeChecked,
-    // Optionally, add this for stylistic rules
-    ...tseslint.configs.stylisticTypeChecked,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
-```
+### UI Library
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+`React` has existed and been dominant on the market for many years. This kind of success tends to spawn rich ecosystems of third-party support libraries and `React` is no exception. There is a vast market for third-party UI libraries, ranging from the most comprehensive, batteries included, like `MaterialUI` and `Mantine` to more subtle efforts recently, such as `HeadlessUI` and `Radix-UI`, which deliver all the functionality you want without the styling. `Radix-UI` recently added optional theming, which I find pretty appealing. I am familiar with it and thus decided to go with that.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+### State management
 
-export default tseslint.config({
-  plugins: {
-    // Add the react-x and react-dom plugins
-    'react-x': reactX,
-    'react-dom': reactDom,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended typescript rules
-    ...reactX.configs['recommended-typescript'].rules,
-    ...reactDom.configs.recommended.rules,
-  },
-})
-```
+There are many ways to handle state management in `React`, from prop-drilling local states (`useState`) to leveraging the `Context API` that is native to the library, to third-party solutions like `Redux`, `Zustand` or `AtomJS` (in order of comprehensiveness). I have long been a `Redux` developer and I like it a lot, but its time as the default choice for state management is over. It is simply too cumbersome and mostly unnecessary in this day and age. There are better tools for managing each kind of state for projects of this size. For synchronizing state between frontend and backend, my choice fell on `Tanstack Query`. For in-app state management across components, I went with `Zustand`, which is to `Redux` pretty much what `Vite` is to `Webpack`.
+
+### Routing
+
+I was in doubt whether to use routing in the app or not. There are some clear advantages to doing so, but at the cost of more work and time spent. Moreover, it's the Zombie Apocalypse... who are you going to share links with, anyway? So, while it is absolutely an option, and I could have gone with either `Tanstack Router` or `React-Router`, I decided to try and omit a router and routing altogether and see how that would go.
