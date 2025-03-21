@@ -42,6 +42,16 @@ To get started:
 
   > **Note**: In case your terminal does not recognize `uvicorn`, run it through `uv` with `uv run uvicorn ...`
 
+Automated tests are available for the API. These can be run by executing
+
+```sh
+pytest
+```
+
+from the root of the (backend)[/backend] folder.
+
+> **Note**: In case your terminal does not recognize `pytest`, run with `uv run pytest`
+
 ### Frontend:
 
 This project is built with `React`, `TypeScript` and `TailwindCSS` running on a `Vite` stack. The project is meant to be run on `Node 22`. If it is not installed, please install it first. `nvm` is recommended for managing your `Node` versions.

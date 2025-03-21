@@ -24,6 +24,12 @@ app.add_middleware(
 
 
 # Routes
+@app.get("/")
+async def root():
+    """Health check endpoint"""
+    return {"message": "Hello, World!"}
+
+
 @app.get("/items/", response_model=List[Item])
 def get_items(db: Session = Depends(get_db)):
     """Get all possible items"""

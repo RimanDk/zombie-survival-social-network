@@ -2,7 +2,7 @@
 from typing import Dict, List, Optional
 from uuid import UUID
 from datetime import datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 # I/O Schemas
 
@@ -13,8 +13,7 @@ class Item(BaseModel):
     label: str
     worth: int
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class LatLong(BaseModel):
@@ -25,8 +24,7 @@ class LatLong(BaseModel):
     distance: Optional[float] = None
     survivor_id: Optional[UUID]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class LatLongUpdate(BaseModel):
@@ -42,8 +40,7 @@ class InfectionReport(BaseModel):
     reported_id: UUID
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class Inventory(BaseModel):
@@ -52,8 +49,7 @@ class Inventory(BaseModel):
     item_id: UUID
     quantity: int
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class Survivor(BaseModel):
@@ -66,8 +62,7 @@ class Survivor(BaseModel):
     lastLocation: LatLong
     infectionReports: List[InfectionReport] = []
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class LatLongCreate(BaseModel):
