@@ -60,7 +60,7 @@ def get_survivor_by_name_or_id(name_or_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail=str(e)) from e
 
 
-@app.post("/survivors/", response_model=Survivor)
+@app.post("/survivors/", response_model=Survivor, status_code=201)
 def create_survivor(survivor: SurvivorCreate, db: Session = Depends(get_db)):
     """"Create a survivor"""
     survivor = crud.create_survivor(
@@ -68,7 +68,7 @@ def create_survivor(survivor: SurvivorCreate, db: Session = Depends(get_db)):
     return survivor
 
 
-@app.post("/survivors/{reported_id}/report/", response_model=InfectionReport)
+@app.post("/survivors/{reported_id}/report/", response_model=InfectionReport, status_code=201)
 def report_infection(
         reported_id: str,
         user_id: str = Header(None, alias="X-User-Id"),
@@ -111,7 +111,7 @@ def delete_survivor(survivor_id: str, db: Session = Depends(get_db)):
     return survivor
 
 
-@app.post("/survivors/trade/", response_model=None)
+@app.post("/survivors/trade/", response_model=None, status_code=201)
 def trade_items(
         survivor_a_items: SurvivorTradePayload,
         survivor_b_items: SurvivorTradePayload,

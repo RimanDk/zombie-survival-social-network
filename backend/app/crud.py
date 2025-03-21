@@ -224,7 +224,7 @@ def update_inventory(db: Session, survivor: Survivor, updated_inventory: Dict[st
     new_items = [
         Inventory(survivor_id=survivor.id,
                   item_id=item_id, quantity=quantity)
-        for item_id, quantity in updated_inventory.items() if quantity > 0
+        for item_id, quantity in updated_inventory.items() if quantity >= 0
     ]
 
     db.add_all(new_items)
@@ -238,10 +238,16 @@ def validate_trade(db: Session, survivor_a_items: SurvivorTradePayload, survivor
         raise ValueError(
             f"Survivor with id {survivor_a_items.survivor_id} not found")
 
+    if survivor_a.infectionReports and len(survivor_a.infectionReports) >= 3:
+        raise ValueError("Survivor A is infected!")
+
     survivor_b = db.query(Survivor).get(str(survivor_b_items.survivor_id))
     if not survivor_b:
         raise ValueError(
             f"Survivor with id {survivor_b_items.survivor_id} not found")
+
+    if survivor_b.infectionReports and len(survivor_b.infectionReports) >= 3:
+        raise ValueError("Survivor B is infected!")
 
     survivor_a_inventory = {
         str(item.item_id): item.quantity for item in survivor_a.inventory}
