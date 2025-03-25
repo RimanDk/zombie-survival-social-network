@@ -3,6 +3,7 @@ import { useShallow } from "zustand/react/shallow";
 import { useQuery } from "@tanstack/react-query";
 
 // internals
+import { QueryKeys } from "../constants";
 import { Toast, useToastsStore } from "../stores";
 import { Item } from "../types";
 
@@ -32,7 +33,7 @@ export const useItems = () => {
   setTimeout(() => bulkRegisterToasts({ ...TOASTS }), 0);
 
   const { data: possibleItems } = useQuery<Item[]>({
-    queryKey: ["get-items"],
+    queryKey: [QueryKeys.GetItems],
     queryFn: async () => {
       const response = await fetch("/api/items/");
 

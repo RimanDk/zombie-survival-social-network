@@ -4,6 +4,12 @@ import { v4 as uuid } from "uuid";
 // internals
 import { Item, Survivor } from "./types";
 
+export enum QueryKeys {
+  GetSurvivors = "get-survivors",
+  GetSurvivor = "get-survivor",
+  GetItems = "get-items",
+}
+
 export const MOCK_POSSIBLE_ITEMS: Item[] = [
   {
     id: uuid(),

@@ -1,8 +1,8 @@
 // libs
 import { AlertDialog, Button, Dialog, Tooltip } from "@radix-ui/themes";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import classNames from "classnames";
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { FaExchangeAlt, FaMapMarkerAlt } from "react-icons/fa";
 import { FiAlertTriangle } from "react-icons/fi";
 import { IoChevronBackOutline } from "react-icons/io5";
@@ -11,49 +11,18 @@ import { useShallow } from "zustand/react/shallow";
 
 // internals
 import { GenderIndicator, InfectionReportGauge, TradingPanel } from ".";
-import {
-  Toast,
-  useSearchStore,
-  useSurvivorStore,
-  useToastsStore,
-} from "../stores";
+import { QueryKeys } from "../constants";
+import { useReportInfection } from "../hooks";
+import { useSearchStore, useSurvivorStore, useToastsStore } from "../stores";
 import { LatLon, Survivor } from "../types";
 
-const TOASTS: Record<string, Toast> = {
-  "report-success": {
-    title: "Infection reported!",
-    description: "Thank you! Stay safe out there!",
-    type: "success",
-    open: false,
-  },
-  "report-unauthorized": {
-    title: "Unauthorized",
-    description: "Your id doesn't match any we have in the system",
-    type: "error",
-    open: false,
-  },
-  "report-error": {
-    title: "Failed to report",
-    description: "An error occurred while adding your report to the system",
-    type: "error",
-    open: false,
-  },
-};
 interface SurvivorCardProps {
   survivor: Survivor;
 }
 export function SurvivorCard({ survivor }: SurvivorCardProps) {
   const myId = useSurvivorStore((state) => state.id);
   const maxDistance = useSearchStore((state) => state.maxDistance);
-
-  const { openToast, bulkRegisterToasts } = useToastsStore(
-    useShallow((state) => ({
-      openToast: state.actions.openToast,
-      bulkRegisterToasts: state.actions.bulkRegisterToasts,
-    })),
-  );
-  // Avoid updating ToastsEngine while this renders
-  setTimeout(() => bulkRegisterToasts({ ...TOASTS }), 0);
+  const openToast = useToastsStore((state) => state.actions.openToast);
 
   const [isCollapsed, setIsCollapsed] = useState(true);
 
@@ -63,32 +32,13 @@ export function SurvivorCard({ survivor }: SurvivorCardProps) {
 
   const queryClient = useQueryClient();
 
-  const mutationFn = useCallback(async () => {
-    const headers = new Headers();
-    headers.append("X-User-Id", myId!);
-
-    const response = await fetch(`/api/survivors/${survivor.id}/report/`, {
-      method: "POST",
-      headers,
-    });
-
-    if (!response.ok) {
-      if (response.status === 401) {
-        openToast("report-unauthorized");
-        throw new Error("Unauthorized");
-      }
-      openToast("report-error");
-      throw new Error("An error occurred");
-    }
-    return await response.json();
-  }, [myId, survivor.id, openToast]);
-
-  const mutation = useMutation({
-    mutationFn,
+  const { mutate } = useReportInfection({
+    identifier: myId,
+    survivor: survivor.id,
     onSuccess: () => {
       openToast("report-success");
       queryClient.invalidateQueries({
-        queryKey: ["get-survivors", myId, maxDistance],
+        queryKey: [QueryKeys.GetSurvivors, myId, maxDistance],
       });
     },
   });
@@ -197,11 +147,7 @@ export function SurvivorCard({ survivor }: SurvivorCardProps) {
                   </Button>
                 </AlertDialog.Cancel>
                 <AlertDialog.Action className="AlertDialogAction">
-                  <Button
-                    onClick={async () => {
-                      await mutation.mutate();
-                    }}
-                  >
+                  <Button onClick={() => mutate()}>
                     <FiAlertTriangle />
                     Report
                   </Button>

@@ -1,7 +1,3 @@
-// libs
-import { useQuery } from "@tanstack/react-query";
-import { useShallow } from "zustand/react/shallow";
-
 // internals
 import {
   DistanceFilter,
@@ -9,75 +5,14 @@ import {
   ToastEngine,
   UserCenter,
 } from "./components";
-import {
-  Toast,
-  useSearchStore,
-  useSurvivorStore,
-  useToastsStore,
-} from "./stores";
-import { Survivor } from "./types";
-
-const TOASTS: Record<string, Toast> = {
-  "load-survivors-error": {
-    title: "Error",
-    description: "An error occurred while loading survivors",
-    type: "error",
-    open: false,
-  },
-  "load-survivors-data-corrupted": {
-    title: "Error",
-    description: "Survivors data is corrupted",
-    type: "error",
-    open: false,
-  },
-};
+import { useSurvivors } from "./hooks";
+import { useSearchStore, useSurvivorStore } from "./stores";
 
 export function App() {
   const myId = useSurvivorStore((state) => state.id);
-
-  const { openToast, bulkRegisterToasts } = useToastsStore(
-    useShallow((state) => ({
-      openToast: state.actions.openToast,
-      bulkRegisterToasts: state.actions.bulkRegisterToasts,
-    })),
-  );
-  // Avoid updating ToastsEngine while this renders
-  setTimeout(() => bulkRegisterToasts({ ...TOASTS }), 0);
-
   const maxDistance = useSearchStore((state) => state.maxDistance);
 
-  const { data: survivors } = useQuery<Survivor[]>({
-    queryKey: ["get-survivors", myId, maxDistance],
-    queryFn: async () => {
-      const headers = new Headers();
-      if (myId) {
-        headers.append("X-User-Id", myId);
-      }
-
-      const search = new URLSearchParams();
-      if (maxDistance) {
-        search.append("max_distance", `${maxDistance}`);
-      }
-
-      const response = await fetch(`/api/survivors/?${search.toString()}`, {
-        method: "GET",
-        headers,
-      });
-
-      console.info("Refetched survivors");
-
-      if (!response.ok) {
-        openToast("load-survivors-error");
-        throw new Error("An error occurred");
-      }
-      try {
-        return response.json();
-      } catch (err) {
-        openToast("load-survivors-data-corrupted");
-        throw err;
-      }
-    },
-  });
+  const { data: survivors } = useSurvivors({ identifier: myId, maxDistance });
 
   return (
     <div className="p-4 sm:p-6">

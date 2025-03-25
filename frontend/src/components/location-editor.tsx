@@ -1,39 +1,15 @@
 // libs
 import { Button, TextField } from "@radix-ui/themes";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { ChangeEvent, useCallback, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { ChangeEvent, useState } from "react";
 import { FaMap } from "react-icons/fa";
 import { useShallow } from "zustand/react/shallow";
 
 // internals
-import {
-  Toast,
-  useSearchStore,
-  useSurvivorStore,
-  useToastsStore,
-} from "../stores";
-import { LatLon } from "../types";
+import { QueryKeys } from "../constants";
+import { useUpdateSurvivor } from "../hooks";
+import { useSearchStore, useSurvivorStore, useToastsStore } from "../stores";
 
-const TOASTS: Record<string, Toast> = {
-  "location-update-success": {
-    title: "Location updated",
-    description: "Your location has been updated successfully",
-    type: "success",
-    open: false,
-  },
-  "location-update-error": {
-    title: "Location update failed",
-    description: "An error occurred while updating your location",
-    type: "error",
-    open: false,
-  },
-  "location-update-unauthorized": {
-    title: "Location update failed",
-    description: "You are not authorized to update another survivor's location",
-    type: "error",
-    open: false,
-  },
-};
 interface LocationEditorProps {
   latitude?: number;
   longitude?: number;
@@ -55,58 +31,24 @@ export function LocationEditor({
       identify: state.actions.identify,
     })),
   );
-
   const maxDistance = useSearchStore((state) => state.maxDistance);
-
-  const { openToast, bulkRegisterToasts } = useToastsStore(
-    useShallow((state) => ({
-      openToast: state.actions.openToast,
-      bulkRegisterToasts: state.actions.bulkRegisterToasts,
-    })),
-  );
-  // Avoid updating ToastsEngine while this renders
-  setTimeout(() => bulkRegisterToasts({ ...TOASTS }));
+  const openToast = useToastsStore((state) => state.actions.openToast);
 
   const [tempLatitude, setTempLatitude] = useState<number>(myLatitude ?? 0);
   const [tempLongitude, setTempLongitude] = useState<number>(myLongitude ?? 0);
 
   const queryClient = useQueryClient();
 
-  const mutationFn = useCallback(
-    async (data: LatLon) => {
-      const headers = new Headers();
-      headers.append("Content-Type", "application/json");
-      headers.append("X-User-Id", myId!);
-
-      const response = await fetch(`/api/survivors/${myId}/location/`, {
-        method: "PUT",
-        headers,
-        body: JSON.stringify(data),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        if (errorData?.status === 401) {
-          openToast("location-update-unauthorized");
-          throw new Error("Unauthorized");
-        }
-        openToast("location-update-error");
-        throw new Error(errorData?.detail ?? "An error occurred");
-      }
-    },
-    [myId, openToast],
-  );
-
-  const mutation = useMutation({
-    mutationFn,
-    onSuccess: async () => {
+  const { mutate } = useUpdateSurvivor({
+    identifier: myId,
+    onSuccess: () => {
       identify(myId, myName, tempLatitude, tempLongitude);
       openToast("location-update-success");
       queryClient.invalidateQueries({
-        queryKey: ["get-survivors", myId, maxDistance],
+        queryKey: [QueryKeys.GetSurvivors, myId, maxDistance],
       });
       queryClient.invalidateQueries({
-        queryKey: ["get-survivor", myId],
+        queryKey: [QueryKeys.GetSurvivor, myId],
       });
     },
   });
@@ -142,12 +84,12 @@ export function LocationEditor({
             disabled={
               tempLatitude === myLatitude && tempLongitude === myLongitude
             }
-            onClick={async () => {
-              await mutation.mutate({
+            onClick={() =>
+              mutate({
                 latitude: tempLatitude,
                 longitude: tempLongitude,
-              });
-            }}
+              })
+            }
           >
             <FaMap />
             Update location
