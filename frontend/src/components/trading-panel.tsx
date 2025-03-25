@@ -66,10 +66,12 @@ export function TradingPanel({ tradingPartner }: TradingPanelProps) {
     ...myInventory,
   });
   const [myOffer, setMyOffer] = useState<TInventory>();
+  const [myOfferValue, setMyOfferValue] = useState<number>(0);
   const [theirInventory, setTheirInventory] = useState<TInventory>({
     ...tradingPartner.inventory,
   });
   const [theirOffer, setTheirOffer] = useState<TInventory>();
+  const [theirOfferValue, setTheirOfferValue] = useState<number>(0);
 
   const getUpdatedInventory = (inventory: TInventory, offer: TInventory) => {
     const update = { ...emptyOffer };
@@ -79,6 +81,12 @@ export function TradingPanel({ tradingPartner }: TradingPanelProps) {
     }
     return update;
   };
+
+  const calculateNetValue = (inventory: TInventory) =>
+    possibleItems!.reduce((acc, item) => {
+      acc += item.worth * (inventory[item.id] ?? 0);
+      return acc;
+    }, 0);
 
   const queryClient = useQueryClient();
 
@@ -106,6 +114,7 @@ export function TradingPanel({ tradingPartner }: TradingPanelProps) {
               setInventory={(offer) => {
                 setMyOffer({ ...offer });
                 setMyTempInventory(getUpdatedInventory(myInventory, offer));
+                setMyOfferValue(calculateNetValue(offer));
               }}
             />
           </div>
@@ -131,6 +140,7 @@ export function TradingPanel({ tradingPartner }: TradingPanelProps) {
                 setTheirInventory(
                   getUpdatedInventory(tradingPartner.inventory, offer),
                 );
+                setTheirOfferValue(calculateNetValue(offer));
               }}
             />
           </div>
@@ -143,7 +153,14 @@ export function TradingPanel({ tradingPartner }: TradingPanelProps) {
         </Dialog.Close>
         <Dialog.Close>
           <Button
-            disabled={!tradingPartner.id || !myOffer || !theirOffer}
+            disabled={
+              !tradingPartner.id ||
+              !myOffer ||
+              !theirOffer ||
+              !myOfferValue ||
+              !theirOfferValue ||
+              myOfferValue !== theirOfferValue
+            }
             onClick={() =>
               mutate({
                 survivor_a_items: { survivor_id: myId!, items: myOffer! },
