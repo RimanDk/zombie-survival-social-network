@@ -1,26 +1,10 @@
 // libs
 import { useQuery } from "@tanstack/react-query";
-import { useShallow } from "zustand/react/shallow";
 
 // internals
 import { QueryKeys } from "../constants";
-import { Toast, useToastsStore } from "../stores";
+import { useToastsStore } from "../stores";
 import { Survivor } from "../types";
-
-const TOASTS: Record<string, Toast> = {
-  "load-survivors-error": {
-    title: "Error",
-    description: "An error occurred while loading survivors",
-    type: "error",
-    open: false,
-  },
-  "load-survivors-data-corrupted": {
-    title: "Error",
-    description: "Survivors data is corrupted",
-    type: "error",
-    open: false,
-  },
-};
 
 interface UseSurvivorsProps {
   identifier: string | null;
@@ -30,15 +14,7 @@ export const useSurvivors = ({
   identifier,
   maxDistance,
 }: UseSurvivorsProps) => {
-  const { openToast, bulkRegisterToasts } = useToastsStore(
-    useShallow((state) => ({
-      openToast: state.actions.openToast,
-      bulkRegisterToasts: state.actions.bulkRegisterToasts,
-    })),
-  );
-
-  // Avoid updating ToastsEngine while this renders
-  setTimeout(() => bulkRegisterToasts({ ...TOASTS }), 0);
+  const openToast = useToastsStore((state) => state.actions.openToast);
 
   const { data, isFetching } = useQuery<Survivor[]>({
     queryKey: [QueryKeys.GetSurvivors, identifier, maxDistance],
@@ -59,13 +35,23 @@ export const useSurvivors = ({
       });
 
       if (!response.ok) {
-        openToast("load-survivors-error");
+        openToast({
+          id: "load-survivors-error",
+          title: "Error",
+          description: "An error occurred while loading survivors",
+          type: "error",
+        });
         throw new Error("An error occurred");
       }
       try {
         return response.json();
       } catch (err) {
-        openToast("load-survivors-data-corrupted");
+        openToast({
+          id: "load-survivors-data-corrupted",
+          title: "Error",
+          description: "Survivors data is corrupted",
+          type: "error",
+        });
         throw err;
       }
     },

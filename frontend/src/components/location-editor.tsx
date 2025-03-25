@@ -43,7 +43,12 @@ export function LocationEditor({
     identifier: myId,
     onSuccess: () => {
       identify(myId, myName, tempLatitude, tempLongitude);
-      openToast("location-update-success");
+      openToast({
+        id: "location-update-success",
+        title: "Location updated",
+        description: "Your location has been updated successfully",
+        type: "success",
+      });
       queryClient.invalidateQueries({
         queryKey: [QueryKeys.GetSurvivors, myId, maxDistance],
       });

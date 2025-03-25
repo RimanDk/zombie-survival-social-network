@@ -5,8 +5,8 @@ import { useShallow } from "zustand/react/shallow";
 
 // internals
 import { isSurvivor } from "../helpers";
-import { useSurvivorStore } from "../stores";
 import { useSurvivor } from "../hooks";
+import { useSurvivorStore } from "../stores";
 
 export function SignIn() {
   const { identify, updateInventory } = useSurvivorStore(

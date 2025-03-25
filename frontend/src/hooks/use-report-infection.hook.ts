@@ -1,31 +1,9 @@
 // libs
 import { useCallback } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { useShallow } from "zustand/react/shallow";
 
 // internals
-import { Toast, useToastsStore } from "../stores";
-
-const TOASTS: Record<string, Toast> = {
-  "report-success": {
-    title: "Infection reported!",
-    description: "Thank you! Stay safe out there!",
-    type: "success",
-    open: false,
-  },
-  "report-unauthorized": {
-    title: "Unauthorized",
-    description: "Your id doesn't match any we have in the system",
-    type: "error",
-    open: false,
-  },
-  "report-error": {
-    title: "Failed to report",
-    description: "An error occurred while adding your report to the system",
-    type: "error",
-    open: false,
-  },
-};
+import { useToastsStore } from "../stores";
 
 interface UseReportInfectionProps {
   identifier: string | null;
@@ -37,14 +15,7 @@ export const useReportInfection = ({
   survivor,
   onSuccess,
 }: UseReportInfectionProps) => {
-  const { openToast, bulkRegisterToasts } = useToastsStore(
-    useShallow((state) => ({
-      openToast: state.actions.openToast,
-      bulkRegisterToasts: state.actions.bulkRegisterToasts,
-    })),
-  );
-  // Avoid updating ToastsEngine while this renders
-  setTimeout(() => bulkRegisterToasts({ ...TOASTS }), 0);
+  const openToast = useToastsStore((state) => state.actions.openToast);
 
   const mutationFn = useCallback(async () => {
     const headers = new Headers();
@@ -57,10 +28,20 @@ export const useReportInfection = ({
 
     if (!response.ok) {
       if (response.status === 401) {
-        openToast("report-unauthorized");
+        openToast({
+          id: "report-unauthorized",
+          title: "Unauthorized",
+          description: "Your id doesn't match any we have in the system",
+          type: "error",
+        });
         throw new Error("Unauthorized");
       }
-      openToast("report-error");
+      openToast({
+        id: "report-error",
+        title: "Failed to report",
+        description: "An error occurred while adding your report to the system",
+        type: "error",
+      });
       throw new Error("An error occurred");
     }
     return await response.json();

@@ -36,7 +36,12 @@ export function SurvivorCard({ survivor }: SurvivorCardProps) {
     identifier: myId,
     survivor: survivor.id,
     onSuccess: () => {
-      openToast("report-success");
+      openToast({
+        id: "report-success",
+        title: "Infection reported!",
+        description: "Thank you! Stay safe out there!",
+        type: "success",
+      });
       queryClient.invalidateQueries({
         queryKey: [QueryKeys.GetSurvivors, myId, maxDistance],
       });

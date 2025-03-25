@@ -12,13 +12,14 @@ import { ChangeEvent, useState } from "react";
 import { GenderIndicator, Inventory, LocationEditor } from ".";
 import { isSurvivor } from "../helpers";
 import { useCreateSurvivor } from "../hooks";
-import { useSurvivorStore } from "../stores";
+import { useSurvivorStore, useToastsStore } from "../stores";
 import { Gender, LatLon, Inventory as TInventory } from "../types";
 
 const DEFAULT_AGE = 18;
 
 export function Register() {
   const identify = useSurvivorStore((state) => state.actions.identify);
+  const openToast = useToastsStore((state) => state.actions.openToast);
 
   const [name, setName] = useState("");
   const [age, setAge] = useState<number>(DEFAULT_AGE);
@@ -45,6 +46,12 @@ export function Register() {
           data.lastLocation.latitude,
           data.lastLocation.longitude,
         );
+        openToast({
+          id: "register-success",
+          title: "Welcome!",
+          description: "You have been added to the survivor list",
+          type: "success",
+        });
       }
     },
     onSettled: resetValues,

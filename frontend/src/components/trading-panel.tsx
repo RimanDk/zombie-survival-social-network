@@ -27,7 +27,12 @@ export function TradingPanel({ tradingPartner }: TradingPanelProps) {
   const { mutate } = useTrade({
     identifier: myId,
     onSuccess: async () => {
-      openToast("trade-success");
+      openToast({
+        id: "trade-success",
+        title: "Trade successful",
+        description: "Items have been traded successfully",
+        type: "success",
+      });
 
       setMyTempInventory({
         ...myInventory,
