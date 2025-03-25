@@ -5,7 +5,7 @@ import { useShallow } from "zustand/react/shallow";
 
 // internals
 import { Toast, useToastsStore } from "../stores";
-import { LatLon, Survivor } from "../types";
+import { LatLonBase, Survivor } from "../types";
 
 const TOASTS: Record<string, Toast> = {
   "location-update-success": {
@@ -46,7 +46,7 @@ export const useUpdateSurvivor = ({
   setTimeout(() => bulkRegisterToasts({ ...TOASTS }));
 
   const mutationFn = useCallback(
-    async (data: LatLon) => {
+    async (data: LatLonBase) => {
       const headers = new Headers();
       headers.append("Content-Type", "application/json");
       headers.append("X-User-Id", identifier!);

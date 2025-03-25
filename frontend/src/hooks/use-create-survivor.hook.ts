@@ -2,7 +2,7 @@ import { useShallow } from "zustand/react/shallow";
 import { Toast, useToastsStore } from "../stores";
 import { useMutation } from "@tanstack/react-query";
 import { useCallback } from "react";
-import { Survivor } from "../types";
+import { Survivor, SurvivorBase } from "../types";
 
 const TOASTS: Record<string, Toast> = {
   "create-survivor-success": {
@@ -37,7 +37,7 @@ export const useCreateSurvivor = ({
   setTimeout(() => bulkRegisterToasts({ ...TOASTS }), 0);
 
   const mutationFn = useCallback(
-    async (data: Survivor) => {
+    async (data: SurvivorBase) => {
       const headers = new Headers();
       headers.append("Content-Type", "application/json");
 
