@@ -6,13 +6,34 @@ import {
   UserCenter,
 } from "./components";
 import { useSurvivors } from "./hooks";
-import { useSearchStore, useSurvivorStore } from "./stores";
+import { useSearchStore, useSurvivorStore, useToastsStore } from "./stores";
 
 export function App() {
   const myId = useSurvivorStore((state) => state.id);
   const maxDistance = useSearchStore((state) => state.maxDistance);
+  const openToast = useToastsStore((state) => state.actions.openToast);
 
-  const { data: survivors } = useSurvivors({ identifier: myId, maxDistance });
+  const { data: survivors } = useSurvivors({
+    identifier: myId,
+    maxDistance,
+    onError: (err) => {
+      if (err.message.includes("Unexpected token")) {
+        openToast({
+          id: "load-survivors-data-corrupted",
+          title: "Error",
+          description: "Survivors data is corrupted",
+          type: "error",
+        });
+        return;
+      }
+      openToast({
+        id: "load-survivors-error",
+        title: "Error",
+        description: "An error occurred while loading survivors",
+        type: "error",
+      });
+    },
+  });
 
   return (
     <div className="p-4 sm:p-6">

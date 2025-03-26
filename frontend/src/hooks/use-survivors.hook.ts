@@ -3,20 +3,19 @@ import { useQuery } from "@tanstack/react-query";
 
 // internals
 import { QueryKeys } from "../constants";
-import { useToastsStore } from "../stores";
 import { Survivor } from "../types";
 
 interface UseSurvivorsProps {
   identifier: string | null;
   maxDistance: number | null;
+  onError: (err: Error) => void;
 }
 export const useSurvivors = ({
   identifier,
   maxDistance,
-}: UseSurvivorsProps) => {
-  const openToast = useToastsStore((state) => state.actions.openToast);
-
-  const { data, isFetching } = useQuery<Survivor[]>({
+  onError,
+}: UseSurvivorsProps) =>
+  useQuery<Survivor[]>({
     queryKey: [QueryKeys.GetSurvivors, identifier, maxDistance],
     queryFn: async () => {
       const headers = new Headers();
@@ -35,27 +34,12 @@ export const useSurvivors = ({
       });
 
       if (!response.ok) {
-        openToast({
-          id: "load-survivors-error",
-          title: "Error",
-          description: "An error occurred while loading survivors",
-          type: "error",
-        });
-        throw new Error("An error occurred");
+        onError(new Error("An error occurred"));
       }
       try {
         return response.json();
       } catch (err) {
-        openToast({
-          id: "load-survivors-data-corrupted",
-          title: "Error",
-          description: "Survivors data is corrupted",
-          type: "error",
-        });
-        throw err;
+        onError(err as Error);
       }
     },
   });
-
-  return { data, isFetching };
-};

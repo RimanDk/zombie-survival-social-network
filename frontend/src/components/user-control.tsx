@@ -12,9 +12,11 @@ import { useShallow } from "zustand/react/shallow";
 import { Register, SignIn, UserPanel } from ".";
 import { isSurvivor } from "../helpers";
 import { useSurvivor } from "../hooks";
-import { useSurvivorStore } from "../stores";
+import { useSurvivorStore, useToastsStore } from "../stores";
 
 export function UserCenter() {
+  const openToast = useToastsStore((state) => state.actions.openToast);
+
   const { identify, myId, myName, updateInventory } = useSurvivorStore(
     useShallow((state) => ({
       myId: state.id,
@@ -37,6 +39,31 @@ export function UserCenter() {
         );
         updateInventory(data.inventory);
       }
+    },
+    onError: (err) => {
+      if (err.message === "Not Found") {
+        openToast({
+          id: "loadprofile-not-fount",
+          title: "Error",
+          description: "Could not find survivor in the system",
+          type: "error",
+        });
+        return;
+      } else if (err.message.includes("Unexpected token")) {
+        openToast({
+          id: "loadprofile-data-corrupted",
+          title: "Error",
+          description: "Survivor data is corrupted",
+          type: "error",
+        });
+        return;
+      }
+      openToast({
+        id: "loadprofile-error",
+        title: "Error",
+        description: "An error occurred while loading survivor",
+        type: "error",
+      });
     },
   });
 

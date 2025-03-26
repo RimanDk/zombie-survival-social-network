@@ -54,6 +54,14 @@ export function Register() {
         });
       }
     },
+    onError: () => {
+      openToast({
+        id: "create-survivor-error",
+        title: "Failed to create",
+        description: "An error occurred while adding you to the system",
+        type: "error",
+      });
+    },
     onSettled: resetValues,
   });
 

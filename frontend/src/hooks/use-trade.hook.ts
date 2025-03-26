@@ -3,16 +3,14 @@ import { useMutation } from "@tanstack/react-query";
 import { useCallback } from "react";
 
 // internals
-import { useToastsStore } from "../stores";
 import { Survivor, Inventory as TInventory } from "../types";
 
 interface UseTradeProps {
   identifier: string | null;
   onSuccess: (data: Survivor) => void;
+  onError: (err: Error) => void;
 }
-export const useTrade = ({ identifier, onSuccess }: UseTradeProps) => {
-  const openToast = useToastsStore((state) => state.actions.openToast);
-
+export const useTrade = ({ identifier, onSuccess, onError }: UseTradeProps) => {
   const mutationFn = useCallback(
     async (data: {
       survivor_a_items: { survivor_id: string; items: TInventory };
@@ -29,31 +27,16 @@ export const useTrade = ({ identifier, onSuccess }: UseTradeProps) => {
       });
 
       if (!response.ok) {
-        openToast({
-          id: "trade-error",
-          title: "Trade failed",
-          description: "An error occurred while trading items",
-          type: "error",
-        });
         throw new Error("Failed to trade");
       }
-      try {
-        return await response.json();
-      } catch (err) {
-        openToast({
-          id: "trade-error",
-          title: "Trade failed",
-          description: "An error occurred while trading items",
-          type: "error",
-        });
-        throw err;
-      }
+      return await response.json();
     },
-    [identifier, openToast],
+    [identifier],
   );
 
   return useMutation({
     mutationFn,
     onSuccess,
+    onError,
   });
 };

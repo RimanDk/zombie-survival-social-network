@@ -46,6 +46,23 @@ export function SurvivorCard({ survivor }: SurvivorCardProps) {
         queryKey: [QueryKeys.GetSurvivors, myId, maxDistance],
       });
     },
+    onError: (err) => {
+      if (err.message === "Unauthorized") {
+        openToast({
+          id: "report-unauthorized",
+          title: "Unauthorized",
+          description: "Your id doesn't match any we have in the system",
+          type: "error",
+        });
+        return;
+      }
+      openToast({
+        id: "report-error",
+        title: "Failed to report",
+        description: "An error occurred while adding your report to the system",
+        type: "error",
+      });
+    },
   });
 
   return (

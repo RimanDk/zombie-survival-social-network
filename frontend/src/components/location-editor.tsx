@@ -56,6 +56,24 @@ export function LocationEditor({
         queryKey: [QueryKeys.GetSurvivor, myId],
       });
     },
+    onError: (err) => {
+      if (err.message === "Unauthorized") {
+        openToast({
+          id: "location-update-unauthorized",
+          title: "Location update failed",
+          description:
+            "You are not authorized to update another survivor's location",
+          type: "error",
+        });
+        return;
+      }
+      openToast({
+        id: "location-update-error",
+        title: "Location update failed",
+        description: "An error occurred while updating your location",
+        type: "error",
+      });
+    },
   });
 
   return (

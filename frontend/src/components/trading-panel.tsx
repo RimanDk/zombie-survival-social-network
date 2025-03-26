@@ -26,7 +26,7 @@ export function TradingPanel({ tradingPartner }: TradingPanelProps) {
 
   const { mutate } = useTrade({
     identifier: myId,
-    onSuccess: async () => {
+    onSuccess: () => {
       openToast({
         id: "trade-success",
         title: "Trade successful",
@@ -49,9 +49,35 @@ export function TradingPanel({ tradingPartner }: TradingPanelProps) {
         queryKey: [QueryKeys.GetSurvivors, myId, maxDistance],
       });
     },
+    onError: () => {
+      openToast({
+        id: "trade-error",
+        title: "Trade failed",
+        description: "An error occurred while trading items",
+        type: "error",
+      });
+    },
   });
 
-  const possibleItems = useItems();
+  const { data: possibleItems } = useItems({
+    onError: (err) => {
+      if (err.message.includes("Unexpected token")) {
+        openToast({
+          id: "load-items-data-corrupted",
+          title: "Error",
+          description: "Items data is corrupted",
+          type: "error",
+        });
+        return;
+      }
+      openToast({
+        id: "load-items-error",
+        title: "Error",
+        description: "An error occurred while loading items",
+        type: "error",
+      });
+    },
+  });
 
   const emptyOffer = useMemo(
     () =>
