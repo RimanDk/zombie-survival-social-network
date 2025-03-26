@@ -6,44 +6,20 @@ import {
   Separator,
   TextField,
 } from "@radix-ui/themes";
-import { useMutation } from "@tanstack/react-query";
-import { ChangeEvent, useCallback, useState } from "react";
+import { ChangeEvent, useState } from "react";
 
 // internals
-import { useShallow } from "zustand/react/shallow";
 import { GenderIndicator, Inventory, LocationEditor } from ".";
 import { isSurvivor } from "../helpers";
-import { Toast, useSurvivorStore, useToastsStore } from "../stores";
-import { Gender, LatLon, Survivor, Inventory as TInventory } from "../types";
+import { useCreateSurvivor } from "../hooks";
+import { useSurvivorStore, useToastsStore } from "../stores";
+import { Gender, LatLon, Inventory as TInventory } from "../types";
 
 const DEFAULT_AGE = 18;
 
-const TOASTS: Record<string, Toast> = {
-  "registration-success": {
-    title: "Welcome!",
-    description: "You have been added to the system!",
-    type: "success",
-    open: false,
-  },
-  "registration-error": {
-    title: "Failed to create",
-    description: "An error occurred while adding you to the system",
-    type: "error",
-    open: false,
-  },
-};
-
 export function Register() {
   const identify = useSurvivorStore((state) => state.actions.identify);
-
-  const { openToast, bulkRegisterToasts } = useToastsStore(
-    useShallow((state) => ({
-      openToast: state.actions.openToast,
-      bulkRegisterToasts: state.actions.bulkRegisterToasts,
-    })),
-  );
-  // Avoid updating ToastsEngine while this renders
-  setTimeout(() => bulkRegisterToasts({ ...TOASTS }), 0);
+  const openToast = useToastsStore((state) => state.actions.openToast);
 
   const [name, setName] = useState("");
   const [age, setAge] = useState<number>(DEFAULT_AGE);
@@ -61,33 +37,7 @@ export function Register() {
     setInventory({});
   };
 
-  const mutationFn = useCallback(
-    async (data: Survivor) => {
-      const headers = new Headers();
-      headers.append("Content-Type", "application/json");
-
-      const response = await fetch("/api/survivors/", {
-        method: "POST",
-        headers,
-        body: JSON.stringify(data),
-      });
-
-      if (!response.ok) {
-        openToast("registration-error");
-        throw new Error("An error occurred");
-      }
-      try {
-        return await response.json();
-      } catch (err) {
-        openToast("registration-error");
-        throw err;
-      }
-    },
-    [openToast],
-  );
-
-  const mutation = useMutation({
-    mutationFn,
+  const { mutate } = useCreateSurvivor({
     onSuccess: (data) => {
       if (isSurvivor(data) && data.name === name && data.id) {
         identify(
@@ -96,7 +46,21 @@ export function Register() {
           data.lastLocation.latitude,
           data.lastLocation.longitude,
         );
+        openToast({
+          id: "register-success",
+          title: "Welcome!",
+          description: "You have been added to the survivor list",
+          type: "success",
+        });
       }
+    },
+    onError: () => {
+      openToast({
+        id: "create-survivor-error",
+        title: "Failed to create",
+        description: "An error occurred while adding you to the system",
+        type: "error",
+      });
     },
     onSettled: resetValues,
   });
@@ -176,8 +140,8 @@ export function Register() {
         <Dialog.Close>
           <Button
             disabled={!name || !age || !gender || !latitude || !longitude}
-            onClick={async () => {
-              await mutation.mutate({
+            onClick={() =>
+              mutate({
                 name,
                 age: age!,
                 gender: gender!,
@@ -186,8 +150,8 @@ export function Register() {
                   longitude: longitude!,
                 },
                 inventory,
-              });
-            }}
+              })
+            }
           >
             Register
           </Button>

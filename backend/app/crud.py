@@ -7,8 +7,14 @@ from sqlalchemy.orm import Session
 from app.pydantic_models import LatLongCreate, SurvivorTradePayload
 from app.alchemy_models import InfectionReport, Inventory, Item, LatLong, Survivor
 
+# Max amount of infection reports before a survivor is marked as infected
+INFECTION_REPORTS_CEILING = 3
 
 # Helper functions
+
+def is_survivor_infected(survivor: Survivor) -> bool:
+    """Checks if a survivor is infected based on the amount of infection reports."""
+    return survivor.infectionReports and len(survivor.infectionReports) >= INFECTION_REPORTS_CEILING
 
 def exclude_requesting_user(survivors: List[Survivor], user_id: str):
     """Finds the requesting survivor and removes them from the list."""
@@ -83,7 +89,7 @@ def get_possible_items(db: Session):
 def get_survivors(db: Session, user_id: Optional[str] = None, max_distance: Optional[int] = None):
     """Handles survivor retrieval based on filters and sorts them by distance if a user ID is provided."""
     survivors = [s for s in db.query(
-        Survivor).all() if len(s.infectionReports) < 3]
+        Survivor).all() if not is_survivor_infected(s)]
 
     if not user_id:
         # Early exit
@@ -128,7 +134,7 @@ def get_survivor_by_name_or_id(db: Session, name_or_id: str):
     if not survivor:
         return None  # Not found in the system
 
-    if len(survivor.infectionReports) >= 3:
+    if is_survivor_infected(survivor):
         raise ValueError("Survivor is infected!")
 
     return format_survivor_response(survivor)
@@ -238,7 +244,7 @@ def validate_trade(db: Session, survivor_a_items: SurvivorTradePayload, survivor
         raise ValueError(
             f"Survivor with id {survivor_a_items.survivor_id} not found")
 
-    if survivor_a.infectionReports and len(survivor_a.infectionReports) >= 3:
+    if is_survivor_infected(survivor_a):
         raise ValueError("Survivor A is infected!")
 
     survivor_b = db.query(Survivor).get(str(survivor_b_items.survivor_id))
@@ -246,7 +252,7 @@ def validate_trade(db: Session, survivor_a_items: SurvivorTradePayload, survivor
         raise ValueError(
             f"Survivor with id {survivor_b_items.survivor_id} not found")
 
-    if survivor_b.infectionReports and len(survivor_b.infectionReports) >= 3:
+    if is_survivor_infected(survivor_b):
         raise ValueError("Survivor B is infected!")
 
     survivor_a_inventory = {

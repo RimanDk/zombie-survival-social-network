@@ -1,35 +1,42 @@
-export type Gender = "m" | "f";
-
-export type LatLon = {
-  id?: string;
-  latitude: number;
-  longitude: number;
-  distance?: number;
-};
-
 export type Item = {
   id: string;
   label: string;
   worth: number;
 };
 
-export type InfectionReport = {
-  id?: string;
+export type Gender = "m" | "f";
+
+export type LatLonBase = {
+  latitude: number;
+  longitude: number;
+};
+export type LatLon = LatLonBase & {
+  id: string;
+  distance: number;
+};
+
+export type InfectionReportBase = {
   created_at: Date;
-  reporter_id: string;
-  reported_id: string;
+  reporter_id: Survivor["id"];
+  reported_id: Survivor["id"];
+};
+export type InfectionReport = InfectionReportBase & {
+  id: string;
 };
 
 export type Inventory = Record<Item["id"], number>;
 
-export type Survivor = {
-  id?: string;
+export type SurvivorBase = {
   name: string;
   age: number;
   gender: Gender;
-  lastLocation: LatLon;
   inventory: Inventory;
-  infectionReports?: InfectionReport[];
+  lastLocation: LatLonBase;
+};
+export type Survivor = SurvivorBase & {
+  id: string;
+  infectionReports: InfectionReport[];
+  lastLocation: LatLon;
 };
 
 export type ErrorState = { detail: string };

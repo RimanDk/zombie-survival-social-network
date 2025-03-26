@@ -1,34 +1,15 @@
 // libs
 import { Button, Dialog } from "@radix-ui/themes";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 
 // internals
 import { Inventory } from ".";
-import { useItems } from "../hooks";
-import {
-  Toast,
-  useSearchStore,
-  useSurvivorStore,
-  useToastsStore,
-} from "../stores";
+import { QueryKeys } from "../constants";
+import { useItems, useTrade } from "../hooks";
+import { useSearchStore, useSurvivorStore, useToastsStore } from "../stores";
 import { Survivor, Inventory as TInventory } from "../types";
-
-const TOASTS: Record<string, Toast> = {
-  "trade-error": {
-    title: "Trade failed",
-    description: "An error occurred while trading items",
-    type: "error",
-    open: false,
-  },
-  "trade-success": {
-    title: "Trade successful",
-    description: "Items have been traded successfully",
-    type: "success",
-    open: false,
-  },
-};
 
 interface TradingPanelProps {
   tradingPartner: Survivor;
@@ -40,19 +21,63 @@ export function TradingPanel({ tradingPartner }: TradingPanelProps) {
       myInventory: state.inventory,
     })),
   );
-
+  const openToast = useToastsStore((state) => state.actions.openToast);
   const maxDistance = useSearchStore((state) => state.maxDistance);
 
-  const { openToast, bulkRegisterToasts } = useToastsStore(
-    useShallow((state) => ({
-      openToast: state.actions.openToast,
-      bulkRegisterToasts: state.actions.bulkRegisterToasts,
-    })),
-  );
-  // Avoid updating ToastsEngine while this renders
-  setTimeout(() => bulkRegisterToasts({ ...TOASTS }), 0);
+  const { mutate } = useTrade({
+    identifier: myId,
+    onSuccess: () => {
+      openToast({
+        id: "trade-success",
+        title: "Trade successful",
+        description: "Items have been traded successfully",
+        type: "success",
+      });
 
-  const possibleItems = useItems();
+      setMyTempInventory({
+        ...myInventory,
+      });
+      setMyOffer(undefined);
+      setTheirInventory({
+        ...tradingPartner.inventory,
+      });
+      setTheirOffer(undefined);
+      queryClient.invalidateQueries({
+        queryKey: [QueryKeys.GetSurvivor, myId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [QueryKeys.GetSurvivors, myId, maxDistance],
+      });
+    },
+    onError: () => {
+      openToast({
+        id: "trade-error",
+        title: "Trade failed",
+        description: "An error occurred while trading items",
+        type: "error",
+      });
+    },
+  });
+
+  const { data: possibleItems } = useItems({
+    onError: (err) => {
+      if (err.message.includes("Unexpected token")) {
+        openToast({
+          id: "load-items-data-corrupted",
+          title: "Error",
+          description: "Items data is corrupted",
+          type: "error",
+        });
+        return;
+      }
+      openToast({
+        id: "load-items-error",
+        title: "Error",
+        description: "An error occurred while loading items",
+        type: "error",
+      });
+    },
+  });
 
   const emptyOffer = useMemo(
     () =>
@@ -67,10 +92,12 @@ export function TradingPanel({ tradingPartner }: TradingPanelProps) {
     ...myInventory,
   });
   const [myOffer, setMyOffer] = useState<TInventory>();
+  const [myOfferValue, setMyOfferValue] = useState<number>(0);
   const [theirInventory, setTheirInventory] = useState<TInventory>({
     ...tradingPartner.inventory,
   });
   const [theirOffer, setTheirOffer] = useState<TInventory>();
+  const [theirOfferValue, setTheirOfferValue] = useState<number>(0);
 
   const getUpdatedInventory = (inventory: TInventory, offer: TInventory) => {
     const update = { ...emptyOffer };
@@ -81,63 +108,13 @@ export function TradingPanel({ tradingPartner }: TradingPanelProps) {
     return update;
   };
 
+  const calculateNetValue = (inventory: TInventory) =>
+    possibleItems!.reduce((acc, item) => {
+      acc += item.worth * (inventory[item.id] ?? 0);
+      return acc;
+    }, 0);
+
   const queryClient = useQueryClient();
-
-  const mutationFn = useCallback(
-    async (data: {
-      survivor_a_items: { survivor_id: string; items: TInventory };
-      survivor_b_items: { survivor_id: string; items: TInventory };
-    }) => {
-      const headers = new Headers();
-      headers.append("Content-Type", "application/json");
-      headers.append("X-User-Id", myId!);
-
-      const response = await fetch("/api/survivors/trade/", {
-        method: "POST",
-        headers,
-        body: JSON.stringify(data),
-      });
-
-      if (!response.ok) {
-        openToast("trade-error");
-        throw new Error("Failed to trade");
-      }
-      try {
-        return await response.json();
-      } catch (err) {
-        openToast("trade-error");
-        throw err;
-      }
-    },
-    [myId, openToast],
-  );
-
-  const mutation = useMutation({
-    mutationFn,
-    onSuccess: async () => {
-      openToast("trade-success");
-
-      setMyTempInventory({
-        ...myInventory,
-      });
-      setMyOffer(undefined);
-      setTheirInventory({
-        ...tradingPartner.inventory,
-      });
-      setTheirOffer(undefined);
-
-      Promise.all([
-        // Refresh my profile
-        queryClient.invalidateQueries({
-          queryKey: ["get-survivor", myId],
-        }),
-        // Refresh full list
-        queryClient.invalidateQueries({
-          queryKey: ["get-survivors", myId, maxDistance],
-        }),
-      ]);
-    },
-  });
 
   return (
     <Dialog.Content>
@@ -163,6 +140,7 @@ export function TradingPanel({ tradingPartner }: TradingPanelProps) {
               setInventory={(offer) => {
                 setMyOffer({ ...offer });
                 setMyTempInventory(getUpdatedInventory(myInventory, offer));
+                setMyOfferValue(calculateNetValue(offer));
               }}
             />
           </div>
@@ -188,6 +166,7 @@ export function TradingPanel({ tradingPartner }: TradingPanelProps) {
                 setTheirInventory(
                   getUpdatedInventory(tradingPartner.inventory, offer),
                 );
+                setTheirOfferValue(calculateNetValue(offer));
               }}
             />
           </div>
@@ -200,16 +179,23 @@ export function TradingPanel({ tradingPartner }: TradingPanelProps) {
         </Dialog.Close>
         <Dialog.Close>
           <Button
-            disabled={!tradingPartner.id || !myOffer || !theirOffer}
-            onClick={async () => {
-              await mutation.mutate({
+            disabled={
+              !tradingPartner.id ||
+              !myOffer ||
+              !theirOffer ||
+              !myOfferValue ||
+              !theirOfferValue ||
+              myOfferValue !== theirOfferValue
+            }
+            onClick={() =>
+              mutate({
                 survivor_a_items: { survivor_id: myId!, items: myOffer! },
                 survivor_b_items: {
                   survivor_id: tradingPartner.id!,
                   items: theirOffer!,
                 }!,
-              });
-            }}
+              })
+            }
           >
             Trade
           </Button>

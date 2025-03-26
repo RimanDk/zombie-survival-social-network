@@ -1,53 +1,26 @@
 // libs
-import { useShallow } from "zustand/react/shallow";
 import { useQuery } from "@tanstack/react-query";
 
 // internals
-import { Toast, useToastsStore } from "../stores";
+import { QueryKeys } from "../constants";
 import { Item } from "../types";
 
-const TOASTS: Record<string, Toast> = {
-  "load-items-error": {
-    title: "Error",
-    description: "An error occurred while loading items",
-    type: "error",
-    open: false,
-  },
-  "load-items-data-corrupted": {
-    title: "Error",
-    description: "Items data is corrupted",
-    type: "error",
-    open: false,
-  },
-};
-
-export const useItems = () => {
-  const { openToast, bulkRegisterToasts } = useToastsStore(
-    useShallow((state) => ({
-      openToast: state.actions.openToast,
-      bulkRegisterToasts: state.actions.bulkRegisterToasts,
-    })),
-  );
-  // Avoid updating ToastsEngine while this renders
-  setTimeout(() => bulkRegisterToasts({ ...TOASTS }), 0);
-
-  const { data: possibleItems } = useQuery<Item[]>({
-    queryKey: ["get-items"],
+interface UseItemsProps {
+  onError: (err: Error) => void;
+}
+export const useItems = ({ onError }: UseItemsProps) =>
+  useQuery<Item[]>({
+    queryKey: [QueryKeys.GetItems],
     queryFn: async () => {
       const response = await fetch("/api/items/");
 
       if (!response.ok) {
-        openToast("load-items-error");
-        throw new Error("An error occurred");
+        onError(new Error("An error occurred"));
       }
       try {
         return await response.json();
       } catch (err) {
-        openToast("load-items-data-corrupted");
-        throw err;
+        onError(err as Error);
       }
     },
   });
-
-  return possibleItems;
-};

@@ -7,6 +7,7 @@ import { FaMinus, FaPlus } from "react-icons/fa";
 // internals
 import { useItems } from "../hooks";
 import { Inventory as TInventory } from "../types";
+import { useToastsStore } from "../stores";
 
 interface InventoryProps {
   items: TInventory;
@@ -28,7 +29,27 @@ export function Inventory({
   grid = false,
   setInventory,
 }: InventoryProps) {
-  const possibleItems = useItems();
+  const openToast = useToastsStore((state) => state.actions.openToast);
+
+  const { data: possibleItems } = useItems({
+    onError: (err) => {
+      if (err.message.includes("Unexpected token")) {
+        openToast({
+          id: "load-items-data-corrupted",
+          title: "Error",
+          description: "Items data is corrupted",
+          type: "error",
+        });
+        return;
+      }
+      openToast({
+        id: "load-items-error",
+        title: "Error",
+        description: "An error occurred while loading items",
+        type: "error",
+      });
+    },
+  });
 
   return (
     <>
