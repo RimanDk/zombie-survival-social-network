@@ -4,4 +4,4 @@ export * from "./use-report-infection.hook";
 export * from "./use-survivor.hook";
 export * from "./use-survivors.hook";
 export * from "./use-trade.hook";
-export * from "./use-update-survivor.hook";
+export * from "./use-update-survivor-location.hook";

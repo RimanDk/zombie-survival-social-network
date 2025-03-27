@@ -1,20 +1,22 @@
 // libs
 import { Button, TextField } from "@radix-ui/themes";
 import { useQueryClient } from "@tanstack/react-query";
+import classNames from "classnames";
 import { ChangeEvent, useState } from "react";
 import { FaMap } from "react-icons/fa";
 import { useShallow } from "zustand/react/shallow";
 
 // internals
 import { QueryKeys } from "../constants";
-import { useUpdateSurvivor } from "../hooks";
+import { debounce } from "../helpers";
+import { useUpdateSurvivorLocation } from "../hooks";
 import { useSearchStore, useSurvivorStore, useToastsStore } from "../stores";
 
 interface LocationEditorProps {
-  latitude?: number;
-  longitude?: number;
-  setLatitude?: (latitude: number) => void;
-  setLongitude?: (longitude: number) => void;
+  latitude?: string;
+  longitude?: string;
+  setLatitude?: (latitude: string) => void;
+  setLongitude?: (longitude: string) => void;
 }
 export function LocationEditor({
   latitude: extLatitude,
@@ -34,15 +36,66 @@ export function LocationEditor({
   const maxDistance = useSearchStore((state) => state.maxDistance);
   const openToast = useToastsStore((state) => state.actions.openToast);
 
-  const [tempLatitude, setTempLatitude] = useState<number>(myLatitude ?? 0);
-  const [tempLongitude, setTempLongitude] = useState<number>(myLongitude ?? 0);
+  const [tempLatitude, setTempLatitude] = useState<string>(
+    myLatitude ? `${myLatitude}` : "",
+  );
+  const [tempLongitude, setTempLongitude] = useState<string>(
+    myLongitude ? `${myLongitude}` : "",
+  );
+  const [latValidity, setLatValidity] = useState<boolean | string>(true);
+  const [lonValidity, setLonValidity] = useState<boolean | string>(true);
+
+  const validateCoordinates = (coords: string, dir: "lat" | "lon") => {
+    const adjusted = coords.trim().replace(",", ".").replace("-", "");
+
+    if (!/^\d+(\.\d+)?$/g.test(adjusted)) {
+      return "extraneous-characters";
+    }
+
+    if (isNaN(parseFloat(adjusted))) {
+      return "nan";
+    }
+
+    const [degrees, decimalDegrees] = adjusted.split(".");
+
+    if (
+      dir === "lat" &&
+      (parseInt(degrees, 10) < -90 || parseInt(degrees, 10) > 90)
+    ) {
+      return "invalid-lat-degrees";
+    } else if (
+      dir === "lon" &&
+      (parseInt(degrees, 10) < -180 || parseInt(degrees, 10) > 180)
+    ) {
+      return "invalid-lon-degrees";
+    }
+
+    if (!decimalDegrees || decimalDegrees.length < 6) {
+      return "missing-decimal-degrees";
+    }
+
+    return true;
+  };
+
+  const debouncedValidate = debounce(
+    (val: string, dir: "lat" | "lon") =>
+      ((fn) => fn(validateCoordinates(val, dir)))(
+        dir === "lat" ? setLatValidity : setLonValidity,
+      ),
+    350,
+  );
 
   const queryClient = useQueryClient();
 
-  const { mutate } = useUpdateSurvivor({
+  const { mutate } = useUpdateSurvivorLocation({
     identifier: myId,
     onSuccess: () => {
-      identify(myId, myName, tempLatitude, tempLongitude);
+      identify(
+        myId,
+        myName,
+        parseFloat(tempLatitude),
+        parseFloat(tempLongitude),
+      );
       openToast({
         id: "location-update-success",
         title: "Location updated",
@@ -82,35 +135,74 @@ export function LocationEditor({
       <label>
         <span className="text-sm">Latitude</span>
         <TextField.Root
-          type="number"
+          type="text"
           value={extLatitude ?? tempLatitude}
-          onChange={(e: ChangeEvent<HTMLInputElement>) =>
-            (extSetLatitude ?? setTempLatitude)(parseFloat(e.target.value))
-          }
+          onChange={(e: ChangeEvent<HTMLInputElement>) => {
+            (extSetLatitude ?? setTempLatitude)(e.target.value);
+            debouncedValidate(e.target.value, "lat");
+          }}
         />
       </label>
+      <div
+        className={classNames("my-2 rounded px-3 text-sm", {
+          hidden: latValidity === true,
+          flex: latValidity !== true,
+        })}
+        style={{ backgroundColor: "var(--accent-5)" }}
+      >
+        {latValidity === "extraneous-characters" && (
+          <p>Latitude should contain only numbers and a single dot</p>
+        )}
+        {latValidity === "nan" && <p>Latitude should be a number</p>}
+        {latValidity === "invalid-lat-degrees" && (
+          <p>Latitude should be between -180 and 180 degrees</p>
+        )}
+        {latValidity === "missing-decimal-degrees" && (
+          <p>Latitude should contain at least 6 decimal degrees</p>
+        )}
+      </div>
 
       <label>
         <span className="text-sm">Longitude</span>
         <TextField.Root
-          type="number"
+          type="text"
           value={extLongitude ?? tempLongitude}
-          onChange={(e: ChangeEvent<HTMLInputElement>) =>
-            (extSetLongitude ?? setTempLongitude)(parseFloat(e.target.value))
-          }
+          onChange={(e: ChangeEvent<HTMLInputElement>) => {
+            (extSetLongitude ?? setTempLongitude)(e.target.value);
+            debouncedValidate(e.target.value, "lon");
+          }}
         />
       </label>
+      <div
+        className={classNames("my-2 rounded px-3 text-sm", {
+          hidden: lonValidity === true,
+          flex: lonValidity !== true,
+        })}
+        style={{ backgroundColor: "var(--accent-5)" }}
+      >
+        {lonValidity === "extraneous-characters" && (
+          <p>Latitude should contain only numbers and a single dot</p>
+        )}
+        {lonValidity === "nan" && <p>Latitude should be a number</p>}
+        {lonValidity === "invalid-lat-degrees" && (
+          <p>Latitude should be between -90 and 90 degrees</p>
+        )}
+        {lonValidity === "missing-decimal-degrees" && (
+          <p>Latitude should contain at least 6 decimal degrees</p>
+        )}
+      </div>
 
       {!extSetLatitude && !extLongitude && (
         <div className="flex justify-end pt-2">
           <Button
             disabled={
-              tempLatitude === myLatitude && tempLongitude === myLongitude
+              parseFloat(tempLatitude) === myLatitude &&
+              parseFloat(tempLongitude) === myLongitude
             }
             onClick={() =>
               mutate({
-                latitude: tempLatitude,
-                longitude: tempLongitude,
+                latitude: parseFloat(tempLatitude),
+                longitude: parseFloat(tempLongitude),
               })
             }
           >

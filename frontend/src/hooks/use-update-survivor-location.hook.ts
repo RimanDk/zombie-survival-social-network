@@ -9,7 +9,7 @@ interface UseUpdateSurvivorProps {
   onSuccess: (data: Survivor) => void;
   onError: (err: Error) => void;
 }
-export const useUpdateSurvivor = ({
+export const useUpdateSurvivorLocation = ({
   identifier,
   onSuccess,
   onError,

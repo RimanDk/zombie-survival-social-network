@@ -13,7 +13,7 @@ import { GenderIndicator, Inventory, LocationEditor } from ".";
 import { isSurvivor } from "../helpers";
 import { useCreateSurvivor } from "../hooks";
 import { useSurvivorStore, useToastsStore } from "../stores";
-import { Gender, LatLon, Inventory as TInventory } from "../types";
+import { Gender, Inventory as TInventory } from "../types";
 
 const DEFAULT_AGE = 18;
 
@@ -24,16 +24,16 @@ export function Register() {
   const [name, setName] = useState("");
   const [age, setAge] = useState<number>(DEFAULT_AGE);
   const [gender, setGender] = useState<Gender>();
-  const [latitude, setLatitude] = useState<LatLon["latitude"]>();
-  const [longitude, setLongitude] = useState<LatLon["longitude"]>();
+  const [latitude, setLatitude] = useState<string>("");
+  const [longitude, setLongitude] = useState<string>("");
   const [inventory, setInventory] = useState<TInventory>({});
 
   const resetValues = () => {
     setName("");
     setAge(DEFAULT_AGE);
     setGender(undefined);
-    setLatitude(undefined);
-    setLongitude(undefined);
+    setLatitude("");
+    setLongitude("");
     setInventory({});
   };
 
@@ -146,8 +146,8 @@ export function Register() {
                 age: age!,
                 gender: gender!,
                 lastLocation: {
-                  latitude: latitude!,
-                  longitude: longitude!,
+                  latitude: parseFloat(latitude)!,
+                  longitude: parseFloat(longitude)!,
                 },
                 inventory,
               })
